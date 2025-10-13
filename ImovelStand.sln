@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImovelStand.Api", "ImovelStand.Api\ImovelStand.Api.csproj", "{458A7ED8-28A6-4AFD-B5CC-5CCC37F60E93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImovelStand.Tests", "ImovelStand.Tests\ImovelStand.Tests.csproj", "{E9A406E8-B202-4A5F-8BFC-D795F7D5413A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{458A7ED8-28A6-4AFD-B5CC-5CCC37F60E93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{458A7ED8-28A6-4AFD-B5CC-5CCC37F60E93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{458A7ED8-28A6-4AFD-B5CC-5CCC37F60E93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{458A7ED8-28A6-4AFD-B5CC-5CCC37F60E93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9A406E8-B202-4A5F-8BFC-D795F7D5413A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9A406E8-B202-4A5F-8BFC-D795F7D5413A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9A406E8-B202-4A5F-8BFC-D795F7D5413A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9A406E8-B202-4A5F-8BFC-D795F7D5413A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

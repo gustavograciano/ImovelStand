@@ -1,0 +1,7 @@
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\bin\Debug\net9.0\.msCoverageSourceRootsMapping_ImovelStand.Tests
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\bin\Debug\net9.0\CoverletSourceRootsMapping_ImovelStand.Tests
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\obj\Debug\net9.0\ImovelStand.Tests.csproj.AssemblyReference.cache
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\obj\Debug\net9.0\ImovelStand.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\obj\Debug\net9.0\ImovelStand.Tests.AssemblyInfoInputs.cache
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\obj\Debug\net9.0\ImovelStand.Tests.AssemblyInfo.cs
+C:\Users\gusta\ImovelStand\ImovelStand.Tests\obj\Debug\net9.0\ImovelStand.Tests.csproj.CoreCompileInputs.cache

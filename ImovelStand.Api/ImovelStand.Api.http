@@ -1,0 +1,6 @@
+@ImovelStand.Api_HostAddress = http://localhost:5082
+
+GET {{ImovelStand.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
