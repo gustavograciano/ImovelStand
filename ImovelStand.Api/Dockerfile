@@ -3,7 +3,7 @@ WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["ImovelStand.Api/ImovelStand.Api.csproj", "ImovelStand.Api/"]
 RUN dotnet restore "ImovelStand.Api/ImovelStand.Api.csproj"
