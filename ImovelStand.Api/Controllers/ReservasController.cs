@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Domain.Entities;
+using ImovelStand.Domain.Enums;
 
 namespace ImovelStand.Api.Controllers;
 
@@ -75,7 +76,7 @@ public class ReservasController : ControllerBase
             }
 
             // Verificar se o apartamento está disponível
-            if (apartamento.Status != "Disponível")
+            if (apartamento.Status != StatusApartamento.Disponivel)
             {
                 return BadRequest(new { message = $"Apartamento não está disponível. Status atual: {apartamento.Status}" });
             }
@@ -101,7 +102,7 @@ public class ReservasController : ControllerBase
             reserva.DataExpiracao = DateTime.UtcNow.AddDays(7); // Reserva válida por 7 dias
 
             // Atualizar status do apartamento
-            apartamento.Status = "Reservado";
+            apartamento.Status = StatusApartamento.Reservado;
 
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
@@ -137,13 +138,13 @@ public class ReservasController : ControllerBase
             // Se a reserva está sendo cancelada, liberar o apartamento
             if (reserva.Status == "Cancelada" && reservaExistente.Status != "Cancelada")
             {
-                reservaExistente.Apartamento.Status = "Disponível";
+                reservaExistente.Apartamento.Status = StatusApartamento.Disponivel;
             }
 
             // Se a reserva está sendo confirmada, manter apartamento reservado
             if (reserva.Status == "Confirmada" && reservaExistente.Status != "Confirmada")
             {
-                reservaExistente.Apartamento.Status = "Reservado";
+                reservaExistente.Apartamento.Status = StatusApartamento.Reservado;
             }
 
             reservaExistente.Status = reserva.Status;
@@ -186,7 +187,7 @@ public class ReservasController : ControllerBase
             // Liberar o apartamento se a reserva estava ativa
             if (reserva.Status == "Ativa" || reserva.Status == "Confirmada")
             {
-                reserva.Apartamento.Status = "Disponível";
+                reserva.Apartamento.Status = StatusApartamento.Disponivel;
             }
 
             _context.Reservas.Remove(reserva);

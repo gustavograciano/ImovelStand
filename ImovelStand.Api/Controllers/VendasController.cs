@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Domain.Entities;
+using ImovelStand.Domain.Enums;
 
 namespace ImovelStand.Api.Controllers;
 
@@ -75,7 +76,7 @@ public class VendasController : ControllerBase
             }
 
             // Verificar se o apartamento já foi vendido
-            if (apartamento.Status == "Vendido")
+            if (apartamento.Status == StatusApartamento.Vendido)
             {
                 return BadRequest(new { message = "Apartamento já foi vendido" });
             }
@@ -91,7 +92,7 @@ public class VendasController : ControllerBase
             venda.Status = "Concluída";
 
             // Atualizar status do apartamento
-            apartamento.Status = "Vendido";
+            apartamento.Status = StatusApartamento.Vendido;
 
             // Cancelar todas as reservas ativas deste apartamento
             var reservasAtivas = await _context.Reservas
@@ -137,7 +138,7 @@ public class VendasController : ControllerBase
             // Se a venda está sendo cancelada, liberar o apartamento
             if (venda.Status == "Cancelada" && vendaExistente.Status != "Cancelada")
             {
-                vendaExistente.Apartamento.Status = "Disponível";
+                vendaExistente.Apartamento.Status = StatusApartamento.Disponivel;
             }
 
             vendaExistente.Status = venda.Status;
@@ -180,7 +181,7 @@ public class VendasController : ControllerBase
             }
 
             // Liberar o apartamento
-            venda.Apartamento.Status = "Disponível";
+            venda.Apartamento.Status = StatusApartamento.Disponivel;
 
             _context.Vendas.Remove(venda);
             await _context.SaveChangesAsync();
