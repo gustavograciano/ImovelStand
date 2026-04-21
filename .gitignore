@@ -1,0 +1,8 @@
+
+# Build artifacts
+bin/
+obj/
+
+# Environment-specific appsettings (credentials)
+appsettings.Local.json
+appsettings.Production.json
