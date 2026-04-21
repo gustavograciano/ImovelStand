@@ -4,8 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Text;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.Services;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Services;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

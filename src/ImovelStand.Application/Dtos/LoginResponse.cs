@@ -1,4 +1,4 @@
-namespace ImovelStand.Api.DTOs;
+namespace ImovelStand.Application.Dtos;
 
 public class LoginResponse
 {

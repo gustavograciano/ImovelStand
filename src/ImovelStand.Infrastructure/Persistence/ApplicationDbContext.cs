@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Api.Models;
+using ImovelStand.Domain.Entities;
 
-namespace ImovelStand.Api.Data;
+namespace ImovelStand.Infrastructure.Persistence;
 
 public class ApplicationDbContext : DbContext
 {
