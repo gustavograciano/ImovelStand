@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.Models;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Domain.Entities;
 
 namespace ImovelStand.Api.Controllers;
 
