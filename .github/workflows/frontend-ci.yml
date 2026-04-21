@@ -1,0 +1,46 @@
+name: frontend-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'imovelstand-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'imovelstand-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: imovelstand-frontend
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: imovelstand-frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit (high severity)
+        run: npm audit --audit-level=high || true
