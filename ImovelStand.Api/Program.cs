@@ -9,14 +9,18 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
+using ImovelStand.Infrastructure.Notificacoes;
 using ImovelStand.Infrastructure.Storage;
 using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Mapping;
 using ImovelStand.Application.Services;
 using ImovelStand.Api.Middleware;
 using ImovelStand.Api.Services;
+using ImovelStand.Jobs.Jobs;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Hangfire;
+using Hangfire.SqlServer;
 using Mapster;
 
 Log.Logger = new LoggerConfiguration()
@@ -44,6 +48,33 @@ try
     builder.Services.AddSingleton<ContratoTemplateEngine>();
     builder.Services.AddSingleton<DashboardService>();
     builder.Services.AddSingleton<ExcelExporter>();
+
+    // Notificações
+    builder.Services.Configure<NotificacaoOptions>(builder.Configuration.GetSection("Notificacao"));
+    builder.Services.AddHttpClient();
+    builder.Services.AddScoped<INotificador, MailKitNotificador>();
+
+    // Jobs
+    builder.Services.AddScoped<ExpirarReservasJob>();
+    builder.Services.AddScoped<ExpirarPropostasJob>();
+    builder.Services.AddScoped<LembreteReservaVencendoJob>();
+
+    // Hangfire (storage SQL usa a mesma connection string do app)
+    var hangfireConn = builder.Configuration.GetConnectionString("Hangfire")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection");
+    builder.Services.AddHangfire(cfg => cfg
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UseSqlServerStorage(hangfireConn, new SqlServerStorageOptions
+        {
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+            QueuePollInterval = TimeSpan.Zero,
+            UseRecommendedIsolationLevel = true,
+            DisableGlobalLocks = true
+        }));
+    builder.Services.AddHangfireServer();
 
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
     builder.Services.AddScoped<TenantAssignmentInterceptor>();
@@ -192,6 +223,28 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    // Dashboard do Hangfire — acessível em /hangfire, protegido em prod por auth filter
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireAdminAuthorizationFilter(app.Environment) }
+    });
+
+    // Registra RecurringJobs
+    RecurringJob.AddOrUpdate<ExpirarReservasJob>(
+        "expirar-reservas",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "*/10 * * * *"); // a cada 10min
+
+    RecurringJob.AddOrUpdate<ExpirarPropostasJob>(
+        "expirar-propostas",
+        job => job.ExecuteAsync(CancellationToken.None),
+        Cron.Daily(3)); // 3h UTC
+
+    RecurringJob.AddOrUpdate<LembreteReservaVencendoJob>(
+        "lembrete-reserva-vencendo",
+        job => job.ExecuteAsync(CancellationToken.None),
+        Cron.Daily(11)); // 8h BRT
 
     app.Run();
 }
