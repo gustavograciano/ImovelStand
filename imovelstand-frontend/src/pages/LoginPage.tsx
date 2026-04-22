@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Stack, TextField, Typography } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, Card, CardContent, Link, Stack, TextField, Typography } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -63,6 +63,12 @@ export function LoginPage() {
               <Button type="submit" size="large" disabled={isSubmitting}>
                 {isSubmitting ? 'Entrando...' : 'Entrar'}
               </Button>
+              <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
+                Ainda não tem conta?{' '}
+                <Link component={RouterLink} to="/onboarding" fontWeight={600}>
+                  Criar trial grátis
+                </Link>
+              </Typography>
             </Stack>
           </form>
         </CardContent>
