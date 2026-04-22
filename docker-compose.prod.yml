@@ -1,0 +1,61 @@
+services:
+  api:
+    image: ghcr.io/gustavograciano/imovelstand-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=${DATABASE_URL}
+      - Jwt__SecretKey=${JWT_SECRET}
+      - Jwt__Issuer=ImovelStand.Api
+      - Jwt__Audience=ImovelStand.Api
+      - Jwt__ExpirationInHours=4
+      - FileStorage__Endpoint=${STORAGE_ENDPOINT}
+      - FileStorage__AccessKey=${STORAGE_KEY}
+      - FileStorage__SecretKey=${STORAGE_SECRET}
+      - FileStorage__UseSsl=true
+      - FileStorage__BucketName=${STORAGE_BUCKET:-imovelstand}
+      - Iugu__ApiToken=${IUGU_API_TOKEN}
+      - Notificacao__Smtp__Host=${SMTP_HOST}
+      - Notificacao__Smtp__Port=${SMTP_PORT:-587}
+      - Notificacao__Smtp__Usuario=${SMTP_USER}
+      - Notificacao__Smtp__Senha=${SMTP_PASS}
+      - Notificacao__Smtp__UseSsl=true
+      - Notificacao__Smtp__From=${SMTP_FROM}
+      - Notificacao__Whatsapp__Provider=z-api
+      - Notificacao__Whatsapp__ApiUrl=${WHATSAPP_API_URL}
+      - Notificacao__Whatsapp__Token=${WHATSAPP_TOKEN}
+      - Notificacao__Whatsapp__InstanceId=${WHATSAPP_INSTANCE_ID}
+      - Serilog__WriteTo__1__Args__serverUrl=${SEQ_URL:-http://seq:80}
+    ports:
+      - "5000:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - seq
+
+  frontend:
+    image: ghcr.io/gustavograciano/imovelstand-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+  seq:
+    image: datalust/seq:latest
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORDHASH=${SEQ_ADMIN_PASSWORD_HASH}
+    ports:
+      - "5341:80"
+    volumes:
+      - seq_data:/data
+
+volumes:
+  seq_data:

@@ -1,0 +1,95 @@
+name: deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente alvo'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_API: ${{ github.repository_owner }}/imovelstand-api
+  IMAGE_NAME_FRONTEND: ${{ github.repository_owner }}/imovelstand-frontend
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ImovelStand.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./imovelstand-frontend
+          file: ./imovelstand-frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+
+  deploy-azure:
+    needs: build-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy API
+        run: |
+          echo "Deploying ImovelStand.Api to App Service"
+          # az webapp config container set --name imovelstand-api --resource-group imovelstand-rg \
+          #   --docker-custom-image-name ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ github.ref_name }}
+
+      - name: Smoke test
+        run: |
+          sleep 30
+          curl -fsSL https://app.imovelstand.com.br/api/health || exit 1
