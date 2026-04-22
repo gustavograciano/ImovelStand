@@ -31,10 +31,34 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext());
+    var sentryDsn = builder.Configuration["Sentry:Dsn"];
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext();
+        if (!string.IsNullOrWhiteSpace(sentryDsn))
+        {
+            configuration.WriteTo.Sentry(o =>
+            {
+                o.Dsn = sentryDsn;
+                o.MinimumBreadcrumbLevel = Serilog.Events.LogEventLevel.Information;
+                o.MinimumEventLevel = Serilog.Events.LogEventLevel.Error;
+                o.Environment = context.HostingEnvironment.EnvironmentName;
+            });
+        }
+    });
+
+    if (!string.IsNullOrWhiteSpace(sentryDsn))
+    {
+        builder.WebHost.UseSentry(o =>
+        {
+            o.Dsn = sentryDsn;
+            o.TracesSampleRate = builder.Environment.IsProduction() ? 0.1 : 1.0;
+            o.Environment = builder.Environment.EnvironmentName;
+        });
+    }
 
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
