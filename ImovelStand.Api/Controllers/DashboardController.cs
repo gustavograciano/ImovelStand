@@ -118,6 +118,36 @@ public class DashboardController : ControllerBase
             $"vendas-{DateTime.UtcNow:yyyyMMdd}.xlsx");
     }
 
+    [HttpGet("heatmap")]
+    public async Task<ActionResult<HeatmapResponse>> Heatmap([FromQuery] int empreendimentoId, CancellationToken ct)
+    {
+        var torres = await _context.Torres.AsNoTracking()
+            .Where(t => t.EmpreendimentoId == empreendimentoId)
+            .OrderBy(t => t.Nome)
+            .ToListAsync(ct);
+        if (torres.Count == 0) return NotFound();
+
+        var torreIds = torres.Select(t => t.Id).ToArray();
+        var apts = await _context.Apartamentos.AsNoTracking()
+            .Include(a => a.Torre)
+            .Where(a => torreIds.Contains(a.TorreId))
+            .ToListAsync(ct);
+
+        return Ok(new HeatmapResponse
+        {
+            EmpreendimentoId = empreendimentoId,
+            Torres = torres.Select(t => t.Nome).ToList(),
+            Celulas = apts.Select(a => new HeatmapCelula(
+                a.Pavimento,
+                a.Numero,
+                a.Torre?.Nome ?? "",
+                a.Status,
+                a.PrecoAtual,
+                a.Id
+            )).ToList()
+        });
+    }
+
     [HttpGet("export/funil.xlsx")]
     [Authorize(Roles = "Admin,Gerente")]
     public async Task<IActionResult> ExportFunil(CancellationToken ct)

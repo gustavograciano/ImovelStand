@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
+using ImovelStand.Infrastructure.Conversao;
 using ImovelStand.Infrastructure.Notificacoes;
 using ImovelStand.Infrastructure.Storage;
 using ImovelStand.Application.Abstractions;
@@ -86,6 +87,11 @@ try
     builder.Services.AddScoped<ExpirarReservasJob>();
     builder.Services.AddScoped<ExpirarPropostasJob>();
     builder.Services.AddScoped<LembreteReservaVencendoJob>();
+    builder.Services.AddScoped<EspelhoSemanalJob>();
+
+    // DOCX -> PDF
+    builder.Services.Configure<DocxToPdfOptions>(builder.Configuration.GetSection("DocxToPdf"));
+    builder.Services.AddScoped<IDocxToPdfConverter, GotenbergDocxToPdfConverter>();
 
     // Hangfire (storage SQL usa a mesma connection string do app)
     var hangfireConn = builder.Configuration.GetConnectionString("Hangfire")
@@ -273,6 +279,11 @@ try
         "lembrete-reserva-vencendo",
         job => job.ExecuteAsync(CancellationToken.None),
         Cron.Daily(11)); // 8h BRT
+
+    RecurringJob.AddOrUpdate<EspelhoSemanalJob>(
+        "espelho-semanal",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "0 21 * * 5"); // Sexta 18h BRT (21h UTC)
 
     app.Run();
 }
