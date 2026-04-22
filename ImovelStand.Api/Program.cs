@@ -50,6 +50,8 @@ try
     builder.Services.AddSingleton<ExcelExporter>();
     builder.Services.AddSingleton<ExcelImporter>();
     builder.Services.AddScoped<WebhookDispatcher>();
+    builder.Services.Configure<IuguOptions>(builder.Configuration.GetSection("Iugu"));
+    builder.Services.AddScoped<IuguBillingService>();
 
     // Notificações
     builder.Services.Configure<NotificacaoOptions>(builder.Configuration.GetSection("Notificacao"));
