@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -159,7 +160,20 @@ export function ClientesPage() {
               </Stack>
               <Stack spacing={1}>
                 {agrupados[stage].map((cliente) => (
-                  <Paper key={cliente.id} sx={{ p: 1.5 }} elevation={1}>
+                  <Paper
+                    key={cliente.id}
+                    component={RouterLink}
+                    to={`/clientes/${cliente.id}`}
+                    sx={{
+                      p: 1.5,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      display: 'block',
+                      transition: 'box-shadow 0.15s',
+                      '&:hover': { boxShadow: 3 }
+                    }}
+                    elevation={1}
+                  >
                     <Typography variant="body2" fontWeight={600}>{cliente.nome}</Typography>
                     <Typography variant="caption" color="text.secondary">
                       {cliente.telefone} · {cliente.origemLead ?? '—'}
