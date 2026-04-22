@@ -36,6 +36,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Visita> Visitas => Set<Visita>();
     public DbSet<Proposta> Propostas => Set<Proposta>();
     public DbSet<PropostaHistoricoStatus> PropostaHistoricos => Set<PropostaHistoricoStatus>();
+    public DbSet<Comissao> Comissoes => Set<Comissao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -128,6 +129,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.Role).HasDefaultValue("Corretor");
             entity.Property(e => e.Ativo).HasDefaultValue(true);
+            entity.Property(e => e.PercentualComissao).HasPrecision(9, 4);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
@@ -216,10 +218,30 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Venda>(entity =>
         {
-            entity.Property(e => e.ValorVenda).HasPrecision(18, 2);
-            entity.Property(e => e.ValorEntrada).HasPrecision(18, 2);
-            entity.Property(e => e.DataVenda).HasDefaultValueSql("GETUTCDATE()");
-            entity.Property(e => e.Status).HasDefaultValue("Concluída");
+            entity.HasIndex(e => new { e.TenantId, e.Numero }).IsUnique();
+            entity.Property(e => e.ValorFinal).HasPrecision(18, 2);
+            entity.Property(e => e.DataFechamento).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.OwnsOne(e => e.CondicaoFinal, cb =>
+            {
+                cb.Property(c => c.ValorTotal).HasPrecision(18, 2);
+                cb.Property(c => c.Entrada).HasPrecision(18, 2);
+                cb.Property(c => c.Sinal).HasPrecision(18, 2);
+                cb.Property(c => c.ValorParcelaMensal).HasPrecision(18, 2);
+                cb.Property(c => c.ValorSemestral).HasPrecision(18, 2);
+                cb.Property(c => c.ValorChaves).HasPrecision(18, 2);
+                cb.Property(c => c.ValorPosChaves).HasPrecision(18, 2);
+                cb.Property(c => c.TaxaJurosAnual).HasPrecision(9, 4);
+                cb.Property(c => c.Indice).HasConversion<int>();
+                cb.Ignore(c => c.ValorPagoTotal);
+            });
+
+            entity.HasOne(e => e.Proposta)
+                .WithMany()
+                .HasForeignKey(e => e.PropostaId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(e => e.Cliente)
                 .WithMany(c => c.Vendas)
@@ -229,6 +251,41 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Apartamento)
                 .WithMany(a => a.Vendas)
                 .HasForeignKey(e => e.ApartamentoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Corretor)
+                .WithMany()
+                .HasForeignKey(e => e.CorretorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CorretorCaptacao)
+                .WithMany()
+                .HasForeignKey(e => e.CorretorCaptacaoId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.GerenteAprovador)
+                .WithMany()
+                .HasForeignKey(e => e.GerenteAprovadorId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Comissao>(entity =>
+        {
+            entity.HasIndex(e => new { e.VendaId, e.UsuarioId, e.Tipo }).IsUnique();
+            entity.Property(e => e.Percentual).HasPrecision(9, 4);
+            entity.Property(e => e.Valor).HasPrecision(18, 2);
+            entity.Property(e => e.Tipo).HasConversion<int>();
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(e => e.Venda)
+                .WithMany(v => v.Comissoes)
+                .HasForeignKey(e => e.VendaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
