@@ -61,6 +61,14 @@ try
         });
     }
 
+    // Application Insights (opcional — se ConnectionString configurado)
+    var aiConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+        ?? builder.Configuration["ApplicationInsights:ConnectionString"];
+    if (!string.IsNullOrWhiteSpace(aiConn))
+    {
+        builder.Services.AddApplicationInsightsTelemetry(o => o.ConnectionString = aiConn);
+    }
+
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
 
@@ -184,6 +192,15 @@ try
         });
     });
 
+    // Health checks: DB + readiness
+    builder.Services.AddHealthChecks()
+        .AddSqlServer(
+            connectionString: builder.Configuration.GetConnectionString("DefaultConnection")!,
+            name: "sqlserver",
+            tags: new[] { "db", "ready" })
+        .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(),
+            tags: new[] { "live" });
+
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
 
@@ -257,6 +274,17 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    // Kubernetes-style probes: /api/health/live (qualquer estado == 200 = processo vivo),
+    // /api/health/ready (200 = pronto pra receber tráfego — DB + dependências OK)
+    app.MapHealthChecks("/api/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = r => r.Tags.Contains("live")
+    });
+    app.MapHealthChecks("/api/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = r => r.Tags.Contains("ready")
+    });
 
     // Dashboard do Hangfire — acessível em /hangfire, protegido em prod por auth filter
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
