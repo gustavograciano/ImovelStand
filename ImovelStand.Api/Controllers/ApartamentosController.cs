@@ -1,9 +1,12 @@
+using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Common;
+using ImovelStand.Application.Dtos;
 using ImovelStand.Domain.Entities;
 using ImovelStand.Domain.Enums;
+using ImovelStand.Infrastructure.Persistence;
 
 namespace ImovelStand.Api.Controllers;
 
@@ -13,153 +16,123 @@ namespace ImovelStand.Api.Controllers;
 public class ApartamentosController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
     private readonly ILogger<ApartamentosController> _logger;
 
-    public ApartamentosController(ApplicationDbContext context, ILogger<ApartamentosController> logger)
+    public ApartamentosController(ApplicationDbContext context, IMapper mapper, ILogger<ApartamentosController> logger)
     {
         _context = context;
+        _mapper = mapper;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Apartamento>>> GetApartamentos([FromQuery] string? status = null)
+    public async Task<ActionResult<PagedResult<ApartamentoResponse>>> GetApartamentos(
+        [FromQuery] PageRequest page,
+        [FromQuery] ApartamentoFiltro filtro)
     {
-        try
-        {
-            var query = _context.Apartamentos.AsQueryable();
+        var (p, s) = page.Normalized();
+        var query = _context.Apartamentos
+            .Include(a => a.Torre)
+            .Include(a => a.Tipologia)
+            .AsNoTracking()
+            .AsQueryable();
 
-            if (!string.IsNullOrEmpty(status) && Enum.TryParse<StatusApartamento>(status, ignoreCase: true, out var statusEnum))
-            {
-                query = query.Where(a => a.Status == statusEnum);
-            }
+        if (filtro.Status.HasValue) query = query.Where(a => a.Status == filtro.Status);
+        if (filtro.TorreId.HasValue) query = query.Where(a => a.TorreId == filtro.TorreId);
+        if (filtro.TipologiaId.HasValue) query = query.Where(a => a.TipologiaId == filtro.TipologiaId);
+        if (filtro.PavimentoMin.HasValue) query = query.Where(a => a.Pavimento >= filtro.PavimentoMin);
+        if (filtro.PavimentoMax.HasValue) query = query.Where(a => a.Pavimento <= filtro.PavimentoMax);
+        if (filtro.PrecoMin.HasValue) query = query.Where(a => a.PrecoAtual >= filtro.PrecoMin);
+        if (filtro.PrecoMax.HasValue) query = query.Where(a => a.PrecoAtual <= filtro.PrecoMax);
 
-            return await query.OrderBy(a => a.Numero).ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao listar apartamentos");
-            return StatusCode(500, new { message = "Erro ao listar apartamentos" });
-        }
+        query = query.OrderBy(a => a.TorreId).ThenBy(a => a.Pavimento).ThenBy(a => a.Numero);
+
+        var total = await query.CountAsync();
+        var items = await query.Skip((p - 1) * s).Take(s).ToListAsync();
+
+        var response = PagedResult<ApartamentoResponse>.Create(
+            _mapper.Map<List<ApartamentoResponse>>(items),
+            p, s, total);
+
+        return Ok(response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Apartamento>> GetApartamento(int id)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApartamentoResponse>> GetApartamento(int id)
     {
-        try
-        {
-            var apartamento = await _context.Apartamentos
-                .Include(a => a.Vendas)
-                .Include(a => a.Reservas)
-                .FirstOrDefaultAsync(a => a.Id == id);
+        var apartamento = await _context.Apartamentos
+            .Include(a => a.Torre)
+            .Include(a => a.Tipologia)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id);
 
-            if (apartamento == null)
-            {
-                return NotFound(new { message = "Apartamento não encontrado" });
-            }
-
-            return apartamento;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao buscar apartamento");
-            return StatusCode(500, new { message = "Erro ao buscar apartamento" });
-        }
+        if (apartamento is null) return NotFound(new { message = "Apartamento não encontrado" });
+        return Ok(_mapper.Map<ApartamentoResponse>(apartamento));
     }
 
     [HttpPost]
-    public async Task<ActionResult<Apartamento>> PostApartamento(Apartamento apartamento)
+    [Authorize(Roles = "Admin,Gerente")]
+    public async Task<ActionResult<ApartamentoResponse>> PostApartamento([FromBody] ApartamentoCreateRequest request)
     {
-        try
-        {
-            if (await _context.Apartamentos.AnyAsync(a => a.Numero == apartamento.Numero))
-            {
-                return BadRequest(new { message = "Número de apartamento já cadastrado" });
-            }
+        var torre = await _context.Torres.FirstOrDefaultAsync(t => t.Id == request.TorreId);
+        if (torre is null) return BadRequest(new { message = "Torre não encontrada" });
 
-            apartamento.DataCadastro = DateTime.UtcNow;
-            apartamento.Status = StatusApartamento.Disponivel;
-            _context.Apartamentos.Add(apartamento);
-            await _context.SaveChangesAsync();
+        var tipologia = await _context.Tipologias.FirstOrDefaultAsync(t => t.Id == request.TipologiaId);
+        if (tipologia is null) return BadRequest(new { message = "Tipologia não encontrada" });
 
-            return CreatedAtAction(nameof(GetApartamento), new { id = apartamento.Id }, apartamento);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao criar apartamento");
-            return StatusCode(500, new { message = "Erro ao criar apartamento" });
-        }
+        if (await _context.Apartamentos.AnyAsync(a => a.TorreId == request.TorreId && a.Numero == request.Numero))
+            return Conflict(new { message = "Já existe apartamento com esse número na torre" });
+
+        var apartamento = _mapper.Map<Apartamento>(request);
+        apartamento.Status = StatusApartamento.Disponivel;
+        apartamento.DataCadastro = DateTime.UtcNow;
+
+        _context.Apartamentos.Add(apartamento);
+        await _context.SaveChangesAsync();
+
+        var response = _mapper.Map<ApartamentoResponse>(apartamento);
+        return CreatedAtAction(nameof(GetApartamento), new { id = apartamento.Id }, response);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutApartamento(int id, Apartamento apartamento)
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Gerente")]
+    public async Task<IActionResult> PutApartamento(int id, [FromBody] ApartamentoUpdateRequest request)
     {
-        if (id != apartamento.Id)
-        {
-            return BadRequest(new { message = "ID do apartamento não corresponde" });
-        }
+        var apartamento = await _context.Apartamentos.FirstOrDefaultAsync(a => a.Id == id);
+        if (apartamento is null) return NotFound(new { message = "Apartamento não encontrado" });
 
-        try
-        {
-            if (await _context.Apartamentos.AnyAsync(a => a.Numero == apartamento.Numero && a.Id != id))
-            {
-                return BadRequest(new { message = "Número de apartamento já cadastrado" });
-            }
+        if (await _context.Apartamentos.AnyAsync(a =>
+                a.TorreId == apartamento.TorreId && a.Numero == request.Numero && a.Id != id))
+            return Conflict(new { message = "Já existe apartamento com esse número na torre" });
 
-            _context.Entry(apartamento).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+        apartamento.TipologiaId = request.TipologiaId;
+        apartamento.Numero = request.Numero;
+        apartamento.Pavimento = request.Pavimento;
+        apartamento.Orientacao = request.Orientacao;
+        apartamento.PrecoAtual = request.PrecoAtual;
+        apartamento.Status = request.Status;
+        apartamento.Observacoes = request.Observacoes;
 
-            return NoContent();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!await ApartamentoExists(id))
-            {
-                return NotFound(new { message = "Apartamento não encontrado" });
-            }
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao atualizar apartamento");
-            return StatusCode(500, new { message = "Erro ao atualizar apartamento" });
-        }
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteApartamento(int id)
     {
-        try
-        {
-            var apartamento = await _context.Apartamentos.FindAsync(id);
-            if (apartamento == null)
-            {
-                return NotFound(new { message = "Apartamento não encontrado" });
-            }
+        var apartamento = await _context.Apartamentos.FirstOrDefaultAsync(a => a.Id == id);
+        if (apartamento is null) return NotFound(new { message = "Apartamento não encontrado" });
 
-            if (await _context.Vendas.AnyAsync(v => v.ApartamentoId == id))
-            {
-                return BadRequest(new { message = "Não é possível excluir apartamento com vendas associadas" });
-            }
+        if (await _context.Vendas.AnyAsync(v => v.ApartamentoId == id))
+            return Conflict(new { message = "Não é possível excluir apartamento com vendas associadas" });
 
-            if (await _context.Reservas.AnyAsync(r => r.ApartamentoId == id))
-            {
-                return BadRequest(new { message = "Não é possível excluir apartamento com reservas associadas" });
-            }
+        if (await _context.Reservas.AnyAsync(r => r.ApartamentoId == id))
+            return Conflict(new { message = "Não é possível excluir apartamento com reservas associadas" });
 
-            _context.Apartamentos.Remove(apartamento);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao excluir apartamento");
-            return StatusCode(500, new { message = "Erro ao excluir apartamento" });
-        }
-    }
-
-    private async Task<bool> ApartamentoExists(int id)
-    {
-        return await _context.Apartamentos.AnyAsync(e => e.Id == id);
+        _context.Apartamentos.Remove(apartamento);
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 }

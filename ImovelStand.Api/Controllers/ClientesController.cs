@@ -1,8 +1,11 @@
+using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Common;
+using ImovelStand.Application.Dtos;
 using ImovelStand.Domain.Entities;
+using ImovelStand.Infrastructure.Persistence;
 
 namespace ImovelStand.Api.Controllers;
 
@@ -12,163 +15,91 @@ namespace ImovelStand.Api.Controllers;
 public class ClientesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
     private readonly ILogger<ClientesController> _logger;
 
-    public ClientesController(ApplicationDbContext context, ILogger<ClientesController> logger)
+    public ClientesController(ApplicationDbContext context, IMapper mapper, ILogger<ClientesController> logger)
     {
         _context = context;
+        _mapper = mapper;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Cliente>>> GetClientes()
+    public async Task<ActionResult<PagedResult<ClienteResponse>>> GetClientes([FromQuery] PageRequest page)
     {
-        try
-        {
-            return await _context.Clientes
-                .OrderByDescending(c => c.DataCadastro)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao listar clientes");
-            return StatusCode(500, new { message = "Erro ao listar clientes" });
-        }
+        var (p, s) = page.Normalized();
+
+        var query = _context.Clientes.AsNoTracking().OrderByDescending(c => c.DataCadastro);
+        var total = await query.CountAsync();
+        var items = await query.Skip((p - 1) * s).Take(s).ToListAsync();
+
+        var response = PagedResult<ClienteResponse>.Create(
+            _mapper.Map<List<ClienteResponse>>(items),
+            p, s, total);
+
+        return Ok(response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Cliente>> GetCliente(int id)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ClienteResponse>> GetCliente(int id)
     {
-        try
-        {
-            var cliente = await _context.Clientes
-                .Include(c => c.Vendas)
-                .Include(c => c.Reservas)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (cliente == null)
-            {
-                return NotFound(new { message = "Cliente não encontrado" });
-            }
-
-            return cliente;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao buscar cliente");
-            return StatusCode(500, new { message = "Erro ao buscar cliente" });
-        }
+        var cliente = await _context.Clientes.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        if (cliente is null) return NotFound(new { message = "Cliente não encontrado" });
+        return Ok(_mapper.Map<ClienteResponse>(cliente));
     }
 
     [HttpPost]
-    public async Task<ActionResult<Cliente>> PostCliente(Cliente cliente)
+    public async Task<ActionResult<ClienteResponse>> PostCliente([FromBody] ClienteCreateRequest request)
     {
-        try
-        {
-            // Verificar se CPF já existe
-            if (await _context.Clientes.AnyAsync(c => c.Cpf == cliente.Cpf))
-            {
-                return BadRequest(new { message = "CPF já cadastrado" });
-            }
+        var cpfNormalizado = DocumentosValidator.NormalizarDigitos(request.Cpf);
 
-            // Verificar se Email já existe
-            if (await _context.Clientes.AnyAsync(c => c.Email == cliente.Email))
-            {
-                return BadRequest(new { message = "Email já cadastrado" });
-            }
+        if (await _context.Clientes.AnyAsync(c => c.Cpf == cpfNormalizado))
+            return Conflict(new { message = "CPF já cadastrado" });
 
-            cliente.DataCadastro = DateTime.UtcNow;
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+        if (await _context.Clientes.AnyAsync(c => c.Email == request.Email))
+            return Conflict(new { message = "Email já cadastrado" });
 
-            return CreatedAtAction(nameof(GetCliente), new { id = cliente.Id }, cliente);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao criar cliente");
-            return StatusCode(500, new { message = "Erro ao criar cliente" });
-        }
+        var cliente = _mapper.Map<Cliente>(request);
+        cliente.Cpf = cpfNormalizado;
+        cliente.DataCadastro = DateTime.UtcNow;
+
+        _context.Clientes.Add(cliente);
+        await _context.SaveChangesAsync();
+
+        var response = _mapper.Map<ClienteResponse>(cliente);
+        return CreatedAtAction(nameof(GetCliente), new { id = cliente.Id }, response);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> PutCliente(int id, Cliente cliente)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> PutCliente(int id, [FromBody] ClienteUpdateRequest request)
     {
-        if (id != cliente.Id)
-        {
-            return BadRequest(new { message = "ID do cliente não corresponde" });
-        }
+        var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == id);
+        if (cliente is null) return NotFound(new { message = "Cliente não encontrado" });
 
-        try
-        {
-            // Verificar se CPF já existe em outro cliente
-            if (await _context.Clientes.AnyAsync(c => c.Cpf == cliente.Cpf && c.Id != id))
-            {
-                return BadRequest(new { message = "CPF já cadastrado para outro cliente" });
-            }
+        if (await _context.Clientes.AnyAsync(c => c.Email == request.Email && c.Id != id))
+            return Conflict(new { message = "Email já cadastrado em outro cliente" });
 
-            // Verificar se Email já existe em outro cliente
-            if (await _context.Clientes.AnyAsync(c => c.Email == cliente.Email && c.Id != id))
-            {
-                return BadRequest(new { message = "Email já cadastrado para outro cliente" });
-            }
+        cliente.Nome = request.Nome;
+        cliente.Email = request.Email;
+        cliente.Telefone = request.Telefone;
+        await _context.SaveChangesAsync();
 
-            _context.Entry(cliente).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!await ClienteExists(id))
-            {
-                return NotFound(new { message = "Cliente não encontrado" });
-            }
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao atualizar cliente");
-            return StatusCode(500, new { message = "Erro ao atualizar cliente" });
-        }
+        return NoContent();
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteCliente(int id)
     {
-        try
-        {
-            var cliente = await _context.Clientes.FindAsync(id);
-            if (cliente == null)
-            {
-                return NotFound(new { message = "Cliente não encontrado" });
-            }
+        var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == id);
+        if (cliente is null) return NotFound(new { message = "Cliente não encontrado" });
 
-            // Verificar se há vendas associadas
-            if (await _context.Vendas.AnyAsync(v => v.ClienteId == id))
-            {
-                return BadRequest(new { message = "Não é possível excluir cliente com vendas associadas" });
-            }
+        if (await _context.Vendas.AnyAsync(v => v.ClienteId == id))
+            return Conflict(new { message = "Cliente tem vendas associadas" });
 
-            // Verificar se há reservas associadas
-            if (await _context.Reservas.AnyAsync(r => r.ClienteId == id))
-            {
-                return BadRequest(new { message = "Não é possível excluir cliente com reservas associadas" });
-            }
-
-            _context.Clientes.Remove(cliente);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao excluir cliente");
-            return StatusCode(500, new { message = "Erro ao excluir cliente" });
-        }
-    }
-
-    private async Task<bool> ClienteExists(int id)
-    {
-        return await _context.Clientes.AnyAsync(e => e.Id == id);
+        _context.Clientes.Remove(cliente);
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 }

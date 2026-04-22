@@ -10,8 +10,13 @@ using System.Threading.RateLimiting;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
 using ImovelStand.Application.Abstractions;
+using ImovelStand.Application.Mapping;
 using ImovelStand.Application.Services;
+using ImovelStand.Api.Middleware;
 using ImovelStand.Api.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Mapster;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -39,6 +44,16 @@ try
                    sp.GetRequiredService<TenantAssignmentInterceptor>()));
 
     builder.Services.AddScoped<TokenService>();
+
+    // Mapster
+    var mapsterConfig = TypeAdapterConfig.GlobalSettings;
+    MappingRegistry.Register(mapsterConfig);
+    builder.Services.AddSingleton(mapsterConfig);
+    builder.Services.AddScoped<MapsterMapper.IMapper, MapsterMapper.ServiceMapper>();
+
+    // FluentValidation — auto-registro de todos os validators em Application
+    builder.Services.AddValidatorsFromAssembly(typeof(MappingRegistry).Assembly);
+    builder.Services.AddFluentValidationAutoValidation();
 
     var jwtSettings = builder.Configuration.GetSection("Jwt");
     var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
@@ -133,6 +148,7 @@ try
     var app = builder.Build();
 
     app.UseSerilogRequestLogging();
+    app.UseMiddleware<ProblemDetailsMiddleware>();
 
     using (var scope = app.Services.CreateScope())
     {
