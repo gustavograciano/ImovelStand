@@ -38,6 +38,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PropostaHistoricoStatus> PropostaHistoricos => Set<PropostaHistoricoStatus>();
     public DbSet<Comissao> Comissoes => Set<Comissao>();
     public DbSet<ContratoTemplate> ContratoTemplates => Set<ContratoTemplate>();
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -350,6 +351,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ContratoTemplate>(entity =>
         {
             entity.HasIndex(e => new { e.TenantId, e.Nome }).IsUnique();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<WebhookSubscription>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Evento });
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         });
 

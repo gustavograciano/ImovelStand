@@ -48,6 +48,8 @@ try
     builder.Services.AddSingleton<ContratoTemplateEngine>();
     builder.Services.AddSingleton<DashboardService>();
     builder.Services.AddSingleton<ExcelExporter>();
+    builder.Services.AddSingleton<ExcelImporter>();
+    builder.Services.AddScoped<WebhookDispatcher>();
 
     // Notificações
     builder.Services.Configure<NotificacaoOptions>(builder.Configuration.GetSection("Notificacao"));
