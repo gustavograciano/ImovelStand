@@ -41,6 +41,7 @@ try
     builder.Services.AddSingleton<ImageProcessor>();
     builder.Services.AddSingleton<CalculadoraFinanceira>();
     builder.Services.AddSingleton<EspelhoPdfGenerator>();
+    builder.Services.AddSingleton<ContratoTemplateEngine>();
 
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
     builder.Services.AddScoped<TenantAssignmentInterceptor>();
