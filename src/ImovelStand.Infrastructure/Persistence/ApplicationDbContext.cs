@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Proposta> Propostas => Set<Proposta>();
     public DbSet<PropostaHistoricoStatus> PropostaHistoricos => Set<PropostaHistoricoStatus>();
     public DbSet<Comissao> Comissoes => Set<Comissao>();
+    public DbSet<ContratoTemplate> ContratoTemplates => Set<ContratoTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -344,6 +345,12 @@ public class ApplicationDbContext : DbContext
                 .WithMany(p => p.Historico)
                 .HasForeignKey(e => e.PropostaId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ContratoTemplate>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Nome }).IsUnique();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
         });
 
         ApplyTenantFilters(modelBuilder);
