@@ -1,11 +1,15 @@
 using System.ComponentModel.DataAnnotations;
+using ImovelStand.Domain.Abstractions;
 
 namespace ImovelStand.Domain.Entities;
 
-public class Cliente
+public class Cliente : ITenantEntity
 {
     [Key]
     public int Id { get; set; }
+
+    [Required]
+    public Guid TenantId { get; set; }
 
     [Required]
     [MaxLength(200)]
