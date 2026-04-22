@@ -6,7 +6,9 @@ using Serilog;
 using System.Text;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
+using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Services;
+using ImovelStand.Api.Services;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -21,11 +23,17 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
+
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
+    builder.Services.AddScoped<TenantAssignmentInterceptor>();
 
     builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-               .AddInterceptors(sp.GetRequiredService<HistoricoPrecoInterceptor>()));
+               .AddInterceptors(
+                   sp.GetRequiredService<HistoricoPrecoInterceptor>(),
+                   sp.GetRequiredService<TenantAssignmentInterceptor>()));
 
     builder.Services.AddScoped<TokenService>();
 
