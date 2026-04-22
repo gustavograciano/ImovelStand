@@ -15,15 +15,55 @@ public static class MappingRegistry
             .Ignore(dest => dest.Id)
             .Ignore(dest => dest.TenantId)
             .Ignore(dest => dest.DataCadastro)
+            .Ignore(dest => dest.ConsentimentoLgpdEm)
+            .Ignore(dest => dest.StatusFunil)
+            .Ignore(dest => dest.ConjugeId)
+            .Ignore(dest => dest.CorretorResponsavel!)
+            .Ignore(dest => dest.Conjuge!)
+            .Ignore(dest => dest.Dependentes)
             .Ignore(dest => dest.Vendas)
-            .Ignore(dest => dest.Reservas);
+            .Ignore(dest => dest.Reservas)
+            .Ignore(dest => dest.Interacoes)
+            .Ignore(dest => dest.Visitas);
         config.NewConfig<ClienteUpdateRequest, Cliente>()
             .Ignore(dest => dest.Id)
             .Ignore(dest => dest.TenantId)
             .Ignore(dest => dest.Cpf)
             .Ignore(dest => dest.DataCadastro)
+            .Ignore(dest => dest.ConsentimentoLgpd)
+            .Ignore(dest => dest.ConsentimentoLgpdEm)
+            .Ignore(dest => dest.CorretorResponsavel!)
+            .Ignore(dest => dest.Conjuge!)
+            .Ignore(dest => dest.Dependentes)
             .Ignore(dest => dest.Vendas)
-            .Ignore(dest => dest.Reservas);
+            .Ignore(dest => dest.Reservas)
+            .Ignore(dest => dest.Interacoes)
+            .Ignore(dest => dest.Visitas);
+
+        // HistoricoInteracao
+        config.NewConfig<HistoricoInteracao, InteracaoResponse>()
+            .Map(dest => dest.UsuarioNome, src => src.Usuario != null ? src.Usuario.Nome : null);
+        config.NewConfig<InteracaoCreateRequest, HistoricoInteracao>()
+            .Ignore(dest => dest.Id)
+            .Ignore(dest => dest.TenantId)
+            .Ignore(dest => dest.ClienteId)
+            .Ignore(dest => dest.UsuarioId)
+            .Ignore(dest => dest.DataHora)
+            .Ignore(dest => dest.Cliente!)
+            .Ignore(dest => dest.Usuario!);
+
+        // Visita
+        config.NewConfig<Visita, VisitaResponse>()
+            .Map(dest => dest.ClienteNome, src => src.Cliente != null ? src.Cliente.Nome : null)
+            .Map(dest => dest.CorretorNome, src => src.Corretor != null ? src.Corretor.Nome : null)
+            .Map(dest => dest.EmpreendimentoNome, src => src.Empreendimento != null ? src.Empreendimento.Nome : null);
+        config.NewConfig<VisitaCreateRequest, Visita>()
+            .Ignore(dest => dest.Id)
+            .Ignore(dest => dest.TenantId)
+            .Ignore(dest => dest.DataCadastro)
+            .Ignore(dest => dest.Cliente!)
+            .Ignore(dest => dest.Corretor!)
+            .Ignore(dest => dest.Empreendimento!);
 
         // Apartamento
         config.NewConfig<Apartamento, ApartamentoResponse>()
