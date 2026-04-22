@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Net;
 using System.Text;
+using System.Threading.RateLimiting;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
 using ImovelStand.Application.Abstractions;
@@ -72,6 +75,24 @@ try
         });
     });
 
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = (int)HttpStatusCode.TooManyRequests;
+
+        // /api/auth/login: 10 tentativas por IP a cada 5 minutos.
+        options.AddPolicy("auth", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+        });
+    });
+
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
 
@@ -137,6 +158,8 @@ try
     }
 
     app.UseCors("AllowAll");
+
+    app.UseRateLimiter();
 
     app.UseAuthentication();
     app.UseAuthorization();
