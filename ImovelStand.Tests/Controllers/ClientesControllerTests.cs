@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Mapster;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,12 @@ public class ClientesControllerTests
         _mapper = new Mapper(config);
     }
 
-    private ClientesController CreateController() => new(_context, _mapper, _loggerMock.Object);
+    private ClientesController CreateController()
+    {
+        var controller = new ClientesController(_context, _mapper, _loggerMock.Object);
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        return controller;
+    }
 
     [Fact]
     public async Task GetClientes_DeveRetornarPagedResult()
@@ -48,7 +54,7 @@ public class ClientesControllerTests
         });
         await _context.SaveChangesAsync();
 
-        var result = await CreateController().GetClientes(new PageRequest());
+        var result = await CreateController().GetClientes(new PageRequest(), null, null, null);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var page = Assert.IsType<PagedResult<ClienteResponse>>(ok.Value);
