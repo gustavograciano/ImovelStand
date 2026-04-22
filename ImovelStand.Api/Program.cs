@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
+using ImovelStand.Infrastructure.Storage;
 using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Mapping;
 using ImovelStand.Application.Services;
@@ -33,6 +34,11 @@ try
 
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ITenantProvider, HttpTenantProvider>();
+
+    // File storage (MinIO/Azure Blob compatível)
+    builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
+    builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
+    builder.Services.AddSingleton<ImageProcessor>();
 
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
     builder.Services.AddScoped<TenantAssignmentInterceptor>();
