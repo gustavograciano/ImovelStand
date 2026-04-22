@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.Models;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Domain.Entities;
+using ImovelStand.Domain.Enums;
 
 namespace ImovelStand.Api.Controllers;
 
@@ -27,9 +28,9 @@ public class ApartamentosController : ControllerBase
         {
             var query = _context.Apartamentos.AsQueryable();
 
-            if (!string.IsNullOrEmpty(status))
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<StatusApartamento>(status, ignoreCase: true, out var statusEnum))
             {
-                query = query.Where(a => a.Status == status);
+                query = query.Where(a => a.Status == statusEnum);
             }
 
             return await query.OrderBy(a => a.Numero).ToListAsync();
@@ -76,7 +77,7 @@ public class ApartamentosController : ControllerBase
             }
 
             apartamento.DataCadastro = DateTime.UtcNow;
-            apartamento.Status = "Disponível";
+            apartamento.Status = StatusApartamento.Disponivel;
             _context.Apartamentos.Add(apartamento);
             await _context.SaveChangesAsync();
 

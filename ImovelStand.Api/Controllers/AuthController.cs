@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.DTOs;
-using ImovelStand.Api.Services;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Dtos;
+using ImovelStand.Application.Services;
 
 namespace ImovelStand.Api.Controllers;
 

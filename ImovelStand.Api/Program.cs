@@ -4,8 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Text;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.Services;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Infrastructure.Interceptors;
+using ImovelStand.Application.Services;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -20,8 +21,11 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
+
+    builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+               .AddInterceptors(sp.GetRequiredService<HistoricoPrecoInterceptor>()));
 
     builder.Services.AddScoped<TokenService>();
 
@@ -133,7 +137,7 @@ try
 
     app.Run();
 }
-catch (Exception ex)
+catch (Exception ex) when (ex is not Microsoft.Extensions.Hosting.HostAbortedException)
 {
     Log.Fatal(ex, "Aplicação encerrou inesperadamente");
 }

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ImovelStand.Api.Models;
+namespace ImovelStand.Domain.Entities;
 
 public class Venda
 {

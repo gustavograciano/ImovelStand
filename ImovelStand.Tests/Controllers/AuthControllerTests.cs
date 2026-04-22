@@ -5,10 +5,10 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ImovelStand.Api.Controllers;
-using ImovelStand.Api.Data;
-using ImovelStand.Api.DTOs;
-using ImovelStand.Api.Models;
-using ImovelStand.Api.Services;
+using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Dtos;
+using ImovelStand.Domain.Entities;
+using ImovelStand.Application.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace ImovelStand.Tests.Controllers;
