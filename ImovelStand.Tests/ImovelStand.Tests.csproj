@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ImovelStand.Api\ImovelStand.Api.csproj" />
+    <ProjectReference Include="..\src\ImovelStand.Jobs\ImovelStand.Jobs.csproj" />
   </ItemGroup>
 
 </Project>
