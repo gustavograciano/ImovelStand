@@ -16,9 +16,14 @@ import {
   TableRow,
   TablePagination,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from '@mui/material';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { apartamentosService, type ApartamentoFilter } from '@/services/apartamentosService';
+import { MapaEmpreendimento } from '@/components/MapaEmpreendimento';
 import type { StatusApartamento } from '@/types/api';
 
 const statusOptions: Array<{ value: StatusApartamento | ''; label: string }> = [
@@ -37,60 +42,80 @@ const statusColors: Record<StatusApartamento, 'success' | 'warning' | 'info' | '
   Bloqueado: 'default'
 };
 
+type ViewMode = 'list' | 'map';
+
 export function ApartamentosPage() {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [status, setStatus] = useState<StatusApartamento | ''>('');
 
-  const filter = useMemo<ApartamentoFilter>(
-    () => ({
-      page: page + 1,
-      pageSize,
-      ...(status ? { status } : {})
-    }),
+  const listFilter = useMemo<ApartamentoFilter>(
+    () => ({ page: page + 1, pageSize, ...(status ? { status } : {}) }),
     [page, pageSize, status]
   );
+  const mapFilter = useMemo<ApartamentoFilter>(
+    () => ({ page: 1, pageSize: 500, ...(status ? { status } : {}) }),
+    [status]
+  );
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['apartamentos', filter],
-    queryFn: () => apartamentosService.list(filter)
+  const listQuery = useQuery({
+    queryKey: ['apartamentos', 'list', listFilter],
+    queryFn: () => apartamentosService.list(listFilter),
+    enabled: viewMode === 'list'
   });
+
+  const mapQuery = useQuery({
+    queryKey: ['apartamentos', 'map', mapFilter],
+    queryFn: () => apartamentosService.list(mapFilter),
+    enabled: viewMode === 'map'
+  });
+
+  const activeQuery = viewMode === 'list' ? listQuery : mapQuery;
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h4" fontWeight={700}>
-        Apartamentos
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h4" fontWeight={700}>Apartamentos</Typography>
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={(_, v) => v && setViewMode(v)}
+          size="small"
+        >
+          <ToggleButton value="list"><ViewListIcon fontSize="small" sx={{ mr: 0.5 }} />Lista</ToggleButton>
+          <ToggleButton value="map"><ViewModuleIcon fontSize="small" sx={{ mr: 0.5 }} />Espelho</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
       <Paper sx={{ p: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField
-            select
-            label="Status"
-            value={status}
-            sx={{ minWidth: 200 }}
-            onChange={(e) => {
-              setStatus(e.target.value as StatusApartamento | '');
-              setPage(0);
-            }}
-          >
-            {statusOptions.map((o) => (
-              <MenuItem key={o.value || 'all'} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
+        <TextField
+          select
+          label="Status"
+          value={status}
+          sx={{ minWidth: 200 }}
+          size="small"
+          onChange={(e) => {
+            setStatus(e.target.value as StatusApartamento | '');
+            setPage(0);
+          }}
+        >
+          {statusOptions.map((o) => (
+            <MenuItem key={o.value || 'all'} value={o.value}>{o.label}</MenuItem>
+          ))}
+        </TextField>
       </Paper>
 
-      {isError ? <Alert severity="error">Erro ao carregar apartamentos.</Alert> : null}
+      {activeQuery.isError ? <Alert severity="error">Erro ao carregar apartamentos.</Alert> : null}
 
-      <Paper>
-        {isLoading ? (
-          <Box sx={{ p: 4, display: 'grid', placeItems: 'center' }}>
-            <CircularProgress />
-          </Box>
-        ) : (
+      {activeQuery.isLoading ? (
+        <Box sx={{ p: 4, display: 'grid', placeItems: 'center' }}>
+          <CircularProgress />
+        </Box>
+      ) : viewMode === 'map' ? (
+        <MapaEmpreendimento apartamentos={mapQuery.data?.items ?? []} />
+      ) : (
+        <Paper>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -104,7 +129,7 @@ export function ApartamentosPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(data?.items ?? []).map((apt) => (
+                {(listQuery.data?.items ?? []).map((apt) => (
                   <TableRow key={apt.id} hover>
                     <TableCell>{apt.numero}</TableCell>
                     <TableCell>{apt.torreNome ?? '-'}</TableCell>
@@ -121,21 +146,21 @@ export function ApartamentosPage() {
               </TableBody>
             </Table>
           </TableContainer>
-        )}
-        <TablePagination
-          component="div"
-          count={data?.total ?? 0}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          rowsPerPage={pageSize}
-          onRowsPerPageChange={(e) => {
-            setPageSize(Number(e.target.value));
-            setPage(0);
-          }}
-          rowsPerPageOptions={[10, 20, 50, 100]}
-          labelRowsPerPage="Linhas por página"
-        />
-      </Paper>
+          <TablePagination
+            component="div"
+            count={listQuery.data?.total ?? 0}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={pageSize}
+            onRowsPerPageChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 20, 50, 100]}
+            labelRowsPerPage="Linhas por página"
+          />
+        </Paper>
+      )}
     </Stack>
   );
 }
