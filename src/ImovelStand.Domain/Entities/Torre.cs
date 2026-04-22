@@ -1,12 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ImovelStand.Domain.Abstractions;
 
 namespace ImovelStand.Domain.Entities;
 
-public class Torre
+public class Torre : ITenantEntity
 {
     [Key]
     public int Id { get; set; }
+
+    [Required]
+    public Guid TenantId { get; set; }
 
     [Required]
     public int EmpreendimentoId { get; set; }
