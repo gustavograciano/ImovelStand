@@ -7,21 +7,20 @@ using Xunit;
 using ImovelStand.Api.Controllers;
 using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Domain.Entities;
+using ImovelStand.Tests.Fakes;
 
 namespace ImovelStand.Tests.Controllers;
 
 public class ClientesControllerTests
 {
+    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly ApplicationDbContext _context;
     private readonly Mock<ILogger<ClientesController>> _loggerMock;
 
     public ClientesControllerTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_Clientes_{Guid.NewGuid()}")
-            .Options;
-
-        _context = new ApplicationDbContext(options);
+        _context = TestDbContextFactory.Create(new TestTenantProvider(Guid.Empty), withInterceptors: false);
+        // Usamos provider vazio no setup para poder semear dados com TenantId explícito
         _loggerMock = new Mock<ILogger<ClientesController>>();
     }
 

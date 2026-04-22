@@ -1,13 +1,17 @@
 using System.ComponentModel.DataAnnotations;
+using ImovelStand.Domain.Abstractions;
 using ImovelStand.Domain.Enums;
 using ImovelStand.Domain.ValueObjects;
 
 namespace ImovelStand.Domain.Entities;
 
-public class Empreendimento
+public class Empreendimento : ITenantEntity
 {
     [Key]
     public int Id { get; set; }
+
+    [Required]
+    public Guid TenantId { get; set; }
 
     [Required]
     [MaxLength(200)]

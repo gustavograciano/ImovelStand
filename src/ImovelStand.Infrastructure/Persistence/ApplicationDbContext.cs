@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using ImovelStand.Application.Abstractions;
+using ImovelStand.Domain.Abstractions;
 using ImovelStand.Domain.Entities;
 using ImovelStand.Domain.Enums;
 
@@ -6,11 +8,18 @@ namespace ImovelStand.Infrastructure.Persistence;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    public static readonly Guid DemoTenantId = new("11111111-1111-1111-1111-111111111111");
+
+    private readonly ITenantProvider _tenantProvider;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
     {
+        _tenantProvider = tenantProvider;
     }
 
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<Plano> Planos => Set<Plano>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Apartamento> Apartamentos => Set<Apartamento>();
     public DbSet<Venda> Vendas => Set<Venda>();
@@ -26,16 +35,34 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Plano>(entity =>
+        {
+            entity.Property(e => e.PrecoMensal).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.Cnpj).IsUnique().HasFilter("[Cnpj] IS NOT NULL");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(e => e.Plano)
+                .WithMany()
+                .HasForeignKey(e => e.PlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Cliente>(entity =>
         {
-            entity.HasIndex(e => e.Cpf).IsUnique();
-            entity.HasIndex(e => e.Email).IsUnique();
+            // CPF/Email únicos por tenant (não global)
+            entity.HasIndex(e => new { e.TenantId, e.Cpf }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique();
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
         });
 
         modelBuilder.Entity<Usuario>(entity =>
         {
-            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique();
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.Role).HasDefaultValue("Corretor");
             entity.Property(e => e.Ativo).HasDefaultValue(true);
@@ -43,7 +70,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Empreendimento>(entity =>
         {
-            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
             entity.Property(e => e.VgvEstimado).HasPrecision(18, 2);
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
             entity.OwnsOne(e => e.Endereco);
@@ -146,17 +173,64 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        ApplyTenantFilters(modelBuilder);
+
         SeedData(modelBuilder);
+    }
+
+    /// <summary>
+    /// Filtro global multi-tenant: toda query em entidade <see cref="ITenantEntity"/> filtra
+    /// por <c>TenantId == _tenantProvider.TenantId</c>. Quando o provider não tem tenant
+    /// (migrations design-time, seed, jobs sem escopo), o filtro vira no-op.
+    /// </summary>
+    private void ApplyTenantFilters(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType)) continue;
+
+            var method = typeof(ApplicationDbContext)
+                .GetMethod(nameof(SetTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .MakeGenericMethod(entityType.ClrType);
+            method.Invoke(this, new object[] { modelBuilder });
+        }
+    }
+
+    private void SetTenantFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class, ITenantEntity
+    {
+        // Quando a request não tem tenant (jobs, migrations design-time, seed), o filtro
+        // vira no-op — queries enxergam todos os tenants. Em request autenticada,
+        // HasTenant == true e o filtro aplica TenantId == request tenant.
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+            !_tenantProvider.HasTenant || e.TenantId == _tenantProvider.TenantId);
     }
 
     private static void SeedData(ModelBuilder modelBuilder)
     {
         var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var tenantId = DemoTenantId;
+
+        modelBuilder.Entity<Plano>().HasData(
+            new Plano { Id = 1, Nome = "Starter", PrecoMensal = 299m, MaxEmpreendimentos = 1, MaxUnidades = 100, MaxUsuarios = 3, Ativo = true },
+            new Plano { Id = 2, Nome = "Pro", PrecoMensal = 899m, MaxEmpreendimentos = 5, MaxUnidades = 500, MaxUsuarios = 15, Ativo = true },
+            new Plano { Id = 3, Nome = "Business", PrecoMensal = 2499m, MaxEmpreendimentos = 50, MaxUnidades = 10_000, MaxUsuarios = 100, Ativo = true }
+        );
+
+        modelBuilder.Entity<Tenant>().HasData(new Tenant
+        {
+            Id = tenantId,
+            Nome = "Imobiliária Demo",
+            Slug = "demo",
+            PlanoId = 2,
+            Ativo = true,
+            CreatedAt = seedDate
+        });
 
         modelBuilder.Entity<Usuario>().HasData(
             new Usuario
             {
                 Id = 1,
+                TenantId = tenantId,
                 Nome = "Administrador",
                 Email = "admin@imovelstand.com",
                 SenhaHash = "$2a$11$r4aHE2PnR4xi9noJxkzqe.2SIC5DqPZvinTi8EmFOHsMRIWcrPkqi",
@@ -167,6 +241,7 @@ public class ApplicationDbContext : DbContext
             new Usuario
             {
                 Id = 2,
+                TenantId = tenantId,
                 Nome = "Corretor Teste",
                 Email = "corretor@imovelstand.com",
                 SenhaHash = "$2a$11$D8sg3FrM1EI689Z905iG2ubYw/m6LSlI3au9TWZFWd9dCFhw9rxQS",
@@ -179,6 +254,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Empreendimento>().HasData(new
         {
             Id = 1,
+            TenantId = tenantId,
             Nome = "Residencial Exemplo",
             Slug = "residencial-exemplo",
             Descricao = "Empreendimento demo para ambiente de desenvolvimento",
@@ -204,20 +280,20 @@ public class ApplicationDbContext : DbContext
             });
 
         modelBuilder.Entity<Torre>().HasData(
-            new Torre { Id = 1, EmpreendimentoId = 1, Nome = "Torre A", Pavimentos = 12, ApartamentosPorPavimento = 2, DataCadastro = seedDate },
-            new Torre { Id = 2, EmpreendimentoId = 1, Nome = "Torre B", Pavimentos = 12, ApartamentosPorPavimento = 2, DataCadastro = seedDate }
+            new Torre { Id = 1, TenantId = tenantId, EmpreendimentoId = 1, Nome = "Torre A", Pavimentos = 12, ApartamentosPorPavimento = 2, DataCadastro = seedDate },
+            new Torre { Id = 2, TenantId = tenantId, EmpreendimentoId = 1, Nome = "Torre B", Pavimentos = 12, ApartamentosPorPavimento = 2, DataCadastro = seedDate }
         );
 
         modelBuilder.Entity<Tipologia>().HasData(
-            new Tipologia { Id = 1, EmpreendimentoId = 1, Nome = "2Q Garden", AreaPrivativa = 55m, AreaTotal = 70m, Quartos = 2, Suites = 0, Banheiros = 1, Vagas = 1, PrecoBase = 350_000m, DataCadastro = seedDate },
-            new Tipologia { Id = 2, EmpreendimentoId = 1, Nome = "3Q Suite", AreaPrivativa = 75m, AreaTotal = 95m, Quartos = 3, Suites = 1, Banheiros = 2, Vagas = 2, PrecoBase = 520_000m, DataCadastro = seedDate },
-            new Tipologia { Id = 3, EmpreendimentoId = 1, Nome = "Cobertura Duplex", AreaPrivativa = 140m, AreaTotal = 180m, Quartos = 3, Suites = 2, Banheiros = 3, Vagas = 2, PrecoBase = 1_200_000m, DataCadastro = seedDate }
+            new Tipologia { Id = 1, TenantId = tenantId, EmpreendimentoId = 1, Nome = "2Q Garden", AreaPrivativa = 55m, AreaTotal = 70m, Quartos = 2, Suites = 0, Banheiros = 1, Vagas = 1, PrecoBase = 350_000m, DataCadastro = seedDate },
+            new Tipologia { Id = 2, TenantId = tenantId, EmpreendimentoId = 1, Nome = "3Q Suite", AreaPrivativa = 75m, AreaTotal = 95m, Quartos = 3, Suites = 1, Banheiros = 2, Vagas = 2, PrecoBase = 520_000m, DataCadastro = seedDate },
+            new Tipologia { Id = 3, TenantId = tenantId, EmpreendimentoId = 1, Nome = "Cobertura Duplex", AreaPrivativa = 140m, AreaTotal = 180m, Quartos = 3, Suites = 2, Banheiros = 3, Vagas = 2, PrecoBase = 1_200_000m, DataCadastro = seedDate }
         );
 
-        modelBuilder.Entity<Apartamento>().HasData(BuildApartamentosSeed(seedDate));
+        modelBuilder.Entity<Apartamento>().HasData(BuildApartamentosSeed(seedDate, tenantId));
     }
 
-    private static Apartamento[] BuildApartamentosSeed(DateTime seedDate)
+    private static Apartamento[] BuildApartamentosSeed(DateTime seedDate, Guid tenantId)
     {
         var apts = new List<Apartamento>();
         int id = 1;
@@ -243,6 +319,7 @@ public class ApplicationDbContext : DbContext
                     apts.Add(new Apartamento
                     {
                         Id = id++,
+                        TenantId = tenantId,
                         TorreId = torreId,
                         TipologiaId = tipologiaId,
                         Numero = $"{pav:00}{unidade:00}",

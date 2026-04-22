@@ -9,6 +9,7 @@ using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Application.Dtos;
 using ImovelStand.Domain.Entities;
 using ImovelStand.Application.Services;
+using ImovelStand.Tests.Fakes;
 using Microsoft.Extensions.Configuration;
 
 namespace ImovelStand.Tests.Controllers;
@@ -21,11 +22,7 @@ public class AuthControllerTests
 
     public AuthControllerTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_Auth_{Guid.NewGuid()}")
-            .Options;
-
-        _context = new ApplicationDbContext(options);
+        _context = TestDbContextFactory.Create(new TestTenantProvider(Guid.Empty));
         _loggerMock = new Mock<ILogger<AuthController>>();
 
         // Configurar o TokenService

@@ -1,7 +1,7 @@
 using ImovelStand.Domain.Entities;
 using ImovelStand.Domain.Enums;
-using ImovelStand.Infrastructure.Interceptors;
 using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Tests.Fakes;
 using Microsoft.EntityFrameworkCore;
 
 namespace ImovelStand.Tests.Interceptors;
@@ -10,11 +10,7 @@ public class HistoricoPrecoInterceptorTests
 {
     private static ApplicationDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new HistoricoPrecoInterceptor())
-            .Options;
-        return new ApplicationDbContext(options);
+        return TestDbContextFactory.Create(new TestTenantProvider(Guid.Empty), withInterceptors: true);
     }
 
     private static async Task<Apartamento> SeedApartamentoAsync(ApplicationDbContext ctx, decimal precoInicial)

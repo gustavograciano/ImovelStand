@@ -1,12 +1,16 @@
 using System.ComponentModel.DataAnnotations;
+using ImovelStand.Domain.Abstractions;
 using ImovelStand.Domain.Enums;
 
 namespace ImovelStand.Domain.Entities;
 
-public class Foto
+public class Foto : ITenantEntity
 {
     [Key]
     public int Id { get; set; }
+
+    [Required]
+    public Guid TenantId { get; set; }
 
     [Required]
     public TipoEntidadeFoto EntidadeTipo { get; set; }
