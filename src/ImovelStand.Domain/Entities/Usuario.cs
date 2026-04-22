@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ImovelStand.Api.Models;
+namespace ImovelStand.Domain.Entities;
 
 public class Usuario
 {

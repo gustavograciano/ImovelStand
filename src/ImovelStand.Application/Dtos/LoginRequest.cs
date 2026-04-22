@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ImovelStand.Api.DTOs;
+namespace ImovelStand.Application.Dtos;
 
 public class LoginRequest
 {

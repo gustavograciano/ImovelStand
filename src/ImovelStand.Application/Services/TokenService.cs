@@ -1,10 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using ImovelStand.Api.Models;
+using ImovelStand.Domain.Entities;
 
-namespace ImovelStand.Api.Services;
+namespace ImovelStand.Application.Services;
 
 public class TokenService
 {
