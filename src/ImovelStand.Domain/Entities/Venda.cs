@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using ImovelStand.Domain.Abstractions;
+using ImovelStand.Domain.Enums;
+using ImovelStand.Domain.ValueObjects;
 
 namespace ImovelStand.Domain.Entities;
 
@@ -13,35 +15,65 @@ public class Venda : ITenantEntity
     public Guid TenantId { get; set; }
 
     [Required]
+    [MaxLength(30)]
+    public string Numero { get; set; } = string.Empty;
+
+    public int? PropostaId { get; set; }
+
+    [Required]
     public int ClienteId { get; set; }
 
     [Required]
     public int ApartamentoId { get; set; }
 
     [Required]
-    public DateTime DataVenda { get; set; } = DateTime.UtcNow;
+    public int CorretorId { get; set; }
+
+    /// <summary>Corretor que captou o lead (pode ser diferente do fechador).</summary>
+    public int? CorretorCaptacaoId { get; set; }
+
+    public int? GerenteAprovadorId { get; set; }
 
     [Required]
-    public decimal ValorVenda { get; set; }
+    public DateTime DataFechamento { get; set; } = DateTime.UtcNow;
+
+    public DateTime? DataAprovacao { get; set; }
 
     [Required]
-    public decimal ValorEntrada { get; set; }
+    public decimal ValorFinal { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string FormaPagamento { get; set; } = string.Empty;
+    public StatusVenda Status { get; set; } = StatusVenda.Negociada;
 
-    [Required]
-    [MaxLength(20)]
-    public string Status { get; set; } = "Concluída"; // Concluída, Cancelada
+    [MaxLength(1000)]
+    public string? ContratoUrl { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(1000)]
     public string? Observacoes { get; set; }
 
-    // Relacionamentos
-    [ForeignKey("ClienteId")]
+    /// <summary>Snapshot congelado da condição no momento da venda; proposta pode ser editada depois.</summary>
+    public CondicaoPagamento CondicaoFinal { get; set; } = new();
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+
+    [ForeignKey(nameof(PropostaId))]
+    public virtual Proposta? Proposta { get; set; }
+
+    [ForeignKey(nameof(ClienteId))]
     public virtual Cliente Cliente { get; set; } = null!;
 
-    [ForeignKey("ApartamentoId")]
+    [ForeignKey(nameof(ApartamentoId))]
     public virtual Apartamento Apartamento { get; set; } = null!;
+
+    [ForeignKey(nameof(CorretorId))]
+    public virtual Usuario Corretor { get; set; } = null!;
+
+    [ForeignKey(nameof(CorretorCaptacaoId))]
+    public virtual Usuario? CorretorCaptacao { get; set; }
+
+    [ForeignKey(nameof(GerenteAprovadorId))]
+    public virtual Usuario? GerenteAprovador { get; set; }
+
+    public virtual ICollection<Comissao> Comissoes { get; set; } = new List<Comissao>();
 }

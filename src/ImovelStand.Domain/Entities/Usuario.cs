@@ -24,9 +24,17 @@ public class Usuario : ITenantEntity
 
     [Required]
     [MaxLength(50)]
-    public string Role { get; set; } = "Corretor"; // Admin, Corretor
+    public string Role { get; set; } = "Corretor"; // Admin, Corretor, Gerente
+
+    [MaxLength(20)]
+    public string? Creci { get; set; }
+
+    /// <summary>Percentual padrão de comissão desse corretor (ex: 0.03 = 3%).</summary>
+    public decimal? PercentualComissao { get; set; }
 
     public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
+
+    public DateTime? UltimoLoginEm { get; set; }
 
     public bool Ativo { get; set; } = true;
 }
