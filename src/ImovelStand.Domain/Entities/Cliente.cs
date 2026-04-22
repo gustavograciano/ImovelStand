@@ -56,6 +56,15 @@ public class Cliente : ITenantEntity
 
     public StatusFunil StatusFunil { get; set; } = StatusFunil.Lead;
 
+    /// <summary>Aceita receber email? Respeitado pelos jobs de notificação.</summary>
+    public bool AceitaEmail { get; set; } = true;
+
+    /// <summary>Aceita receber WhatsApp? Respeitado pelos jobs de notificação.</summary>
+    public bool AceitaWhatsapp { get; set; } = true;
+
+    /// <summary>Aceita receber SMS? (feature futura)</summary>
+    public bool AceitaSms { get; set; } = false;
+
     public int? CorretorResponsavelId { get; set; }
 
     public int? ConjugeId { get; set; }
