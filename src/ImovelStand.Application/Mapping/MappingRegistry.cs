@@ -2,6 +2,7 @@ using ImovelStand.Application.Dtos;
 using ImovelStand.Domain.Entities;
 using ImovelStand.Domain.ValueObjects;
 using Mapster;
+// Sprint 6
 
 namespace ImovelStand.Application.Mapping;
 
@@ -64,6 +65,14 @@ public static class MappingRegistry
             .Ignore(dest => dest.Cliente!)
             .Ignore(dest => dest.Corretor!)
             .Ignore(dest => dest.Empreendimento!);
+
+        // Proposta + CondicaoPagamento
+        config.NewConfig<CondicaoPagamento, CondicaoPagamentoDto>();
+        config.NewConfig<CondicaoPagamentoDto, CondicaoPagamento>();
+        config.NewConfig<Proposta, PropostaResponse>()
+            .Map(dest => dest.ClienteNome, src => src.Cliente != null ? src.Cliente.Nome : null)
+            .Map(dest => dest.ApartamentoNumero, src => src.Apartamento != null ? src.Apartamento.Numero : null)
+            .Map(dest => dest.CorretorNome, src => src.Corretor != null ? src.Corretor.Nome : null);
 
         // Apartamento
         config.NewConfig<Apartamento, ApartamentoResponse>()
