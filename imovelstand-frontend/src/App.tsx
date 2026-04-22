@@ -10,6 +10,8 @@ import { theme } from '@/theme';
 
 // Code-splitting: rotas autenticadas viram chunks separados.
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
+const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const ApartamentosPage = lazy(() => import('@/pages/ApartamentosPage').then(m => ({ default: m.ApartamentosPage })));
 const ClientesPage = lazy(() => import('@/pages/ClientesPage').then(m => ({ default: m.ClientesPage })));
@@ -44,6 +46,8 @@ export default function App() {
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                   element={
