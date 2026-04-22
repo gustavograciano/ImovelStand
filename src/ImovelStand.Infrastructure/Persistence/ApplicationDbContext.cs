@@ -39,6 +39,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Comissao> Comissoes => Set<Comissao>();
     public DbSet<ContratoTemplate> ContratoTemplates => Set<ContratoTemplate>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<Assinatura> Assinaturas => Set<Assinatura>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -358,6 +359,24 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => new { e.TenantId, e.Evento });
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<Assinatura>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.IuguSubscriptionId);
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Ignore(e => e.EstaAtiva);
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Plano)
+                .WithMany()
+                .HasForeignKey(e => e.PlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         ApplyTenantFilters(modelBuilder);
