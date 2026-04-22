@@ -34,6 +34,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<ClienteDependente> ClienteDependentes => Set<ClienteDependente>();
     public DbSet<HistoricoInteracao> HistoricoInteracoes => Set<HistoricoInteracao>();
     public DbSet<Visita> Visitas => Set<Visita>();
+    public DbSet<Proposta> Propostas => Set<Proposta>();
+    public DbSet<PropostaHistoricoStatus> PropostaHistoricos => Set<PropostaHistoricoStatus>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -244,6 +246,47 @@ public class ApplicationDbContext : DbContext
                 .WithMany(a => a.Reservas)
                 .HasForeignKey(e => e.ApartamentoId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Proposta>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Numero }).IsUnique();
+            entity.HasIndex(e => e.ApartamentoId);
+            entity.Property(e => e.ValorOferecido).HasPrecision(18, 2);
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.OwnsOne(e => e.Condicao, cb =>
+            {
+                cb.Property(c => c.ValorTotal).HasPrecision(18, 2);
+                cb.Property(c => c.Entrada).HasPrecision(18, 2);
+                cb.Property(c => c.Sinal).HasPrecision(18, 2);
+                cb.Property(c => c.ValorParcelaMensal).HasPrecision(18, 2);
+                cb.Property(c => c.ValorSemestral).HasPrecision(18, 2);
+                cb.Property(c => c.ValorChaves).HasPrecision(18, 2);
+                cb.Property(c => c.ValorPosChaves).HasPrecision(18, 2);
+                cb.Property(c => c.TaxaJurosAnual).HasPrecision(9, 4);
+                cb.Property(c => c.Indice).HasConversion<int>();
+                cb.Ignore(c => c.ValorPagoTotal);
+            });
+
+            entity.HasOne(e => e.Cliente).WithMany().HasForeignKey(e => e.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Apartamento).WithMany().HasForeignKey(e => e.ApartamentoId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Corretor).WithMany().HasForeignKey(e => e.CorretorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.PropostaOriginal).WithMany().HasForeignKey(e => e.PropostaOriginalId).OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<PropostaHistoricoStatus>(entity =>
+        {
+            entity.HasIndex(e => new { e.PropostaId, e.DataAlteracao });
+            entity.Property(e => e.StatusAnterior).HasConversion<int>();
+            entity.Property(e => e.StatusNovo).HasConversion<int>();
+            entity.Property(e => e.DataAlteracao).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(e => e.Proposta)
+                .WithMany(p => p.Historico)
+                .HasForeignKey(e => e.PropostaId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         ApplyTenantFilters(modelBuilder);
