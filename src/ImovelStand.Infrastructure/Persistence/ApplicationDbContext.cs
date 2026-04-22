@@ -30,6 +30,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Tipologia> Tipologias => Set<Tipologia>();
     public DbSet<HistoricoPreco> HistoricoPrecos => Set<HistoricoPreco>();
     public DbSet<Foto> Fotos => Set<Foto>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +67,19 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
             entity.Property(e => e.Role).HasDefaultValue("Corretor");
             entity.Property(e => e.Ativo).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => e.UsuarioId);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Ignore(e => e.EstaAtivo);
+
+            entity.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Empreendimento>(entity =>
