@@ -74,6 +74,14 @@ public static class MappingRegistry
             .Map(dest => dest.ApartamentoNumero, src => src.Apartamento != null ? src.Apartamento.Numero : null)
             .Map(dest => dest.CorretorNome, src => src.Corretor != null ? src.Corretor.Nome : null);
 
+        // Venda + Comissao
+        config.NewConfig<Venda, VendaResponse>()
+            .Map(dest => dest.ClienteNome, src => src.Cliente != null ? src.Cliente.Nome : null)
+            .Map(dest => dest.ApartamentoNumero, src => src.Apartamento != null ? src.Apartamento.Numero : null)
+            .Map(dest => dest.CorretorNome, src => src.Corretor != null ? src.Corretor.Nome : null);
+        config.NewConfig<Comissao, ComissaoResponse>()
+            .Map(dest => dest.UsuarioNome, src => src.Usuario != null ? src.Usuario.Nome : null);
+
         // Apartamento
         config.NewConfig<Apartamento, ApartamentoResponse>()
             .Map(dest => dest.TorreNome, src => src.Torre != null ? src.Torre.Nome : null)
