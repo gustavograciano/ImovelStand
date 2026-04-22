@@ -42,6 +42,8 @@ try
     builder.Services.AddSingleton<CalculadoraFinanceira>();
     builder.Services.AddSingleton<EspelhoPdfGenerator>();
     builder.Services.AddSingleton<ContratoTemplateEngine>();
+    builder.Services.AddSingleton<DashboardService>();
+    builder.Services.AddSingleton<ExcelExporter>();
 
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
     builder.Services.AddScoped<TenantAssignmentInterceptor>();
