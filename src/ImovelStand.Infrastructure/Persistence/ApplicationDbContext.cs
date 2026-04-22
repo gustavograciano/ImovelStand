@@ -31,6 +31,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<HistoricoPreco> HistoricoPrecos => Set<HistoricoPreco>();
     public DbSet<Foto> Fotos => Set<Foto>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<ClienteDependente> ClienteDependentes => Set<ClienteDependente>();
+    public DbSet<HistoricoInteracao> HistoricoInteracoes => Set<HistoricoInteracao>();
+    public DbSet<Visita> Visitas => Set<Visita>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,10 +58,66 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Cliente>(entity =>
         {
-            // CPF/Email únicos por tenant (não global)
             entity.HasIndex(e => new { e.TenantId, e.Cpf }).IsUnique();
             entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique();
             entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.RendaMensal).HasPrecision(18, 2);
+            entity.Property(e => e.EstadoCivil).HasConversion<int?>();
+            entity.Property(e => e.RegimeBens).HasConversion<int?>();
+            entity.Property(e => e.OrigemLead).HasConversion<int?>();
+            entity.Property(e => e.StatusFunil).HasConversion<int>();
+            entity.OwnsOne(e => e.Endereco);
+
+            entity.HasOne(e => e.CorretorResponsavel)
+                .WithMany()
+                .HasForeignKey(e => e.CorretorResponsavelId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Conjuge)
+                .WithMany()
+                .HasForeignKey(e => e.ConjugeId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ClienteDependente>(entity =>
+        {
+            entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Cliente)
+                .WithMany(c => c.Dependentes)
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<HistoricoInteracao>(entity =>
+        {
+            entity.HasIndex(e => new { e.ClienteId, e.DataHora });
+            entity.Property(e => e.Tipo).HasConversion<int>();
+            entity.HasOne(e => e.Cliente)
+                .WithMany(c => c.Interacoes)
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Visita>(entity =>
+        {
+            entity.HasIndex(e => new { e.EmpreendimentoId, e.DataHora });
+            entity.Property(e => e.DataCadastro).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Cliente)
+                .WithMany(c => c.Visitas)
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Corretor)
+                .WithMany()
+                .HasForeignKey(e => e.CorretorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Empreendimento)
+                .WithMany()
+                .HasForeignKey(e => e.EmpreendimentoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Usuario>(entity =>
