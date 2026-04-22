@@ -1,36 +1,46 @@
 using System.Threading.Tasks;
+using Mapster;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ImovelStand.Api.Controllers;
-using ImovelStand.Infrastructure.Persistence;
+using ImovelStand.Application.Common;
+using ImovelStand.Application.Dtos;
+using ImovelStand.Application.Mapping;
 using ImovelStand.Domain.Entities;
+using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Tests.Fakes;
 
 namespace ImovelStand.Tests.Controllers;
 
 public class ClientesControllerTests
 {
-    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
     private readonly Mock<ILogger<ClientesController>> _loggerMock;
 
     public ClientesControllerTests()
     {
-        _context = TestDbContextFactory.Create(new TestTenantProvider(Guid.Empty), withInterceptors: false);
-        // Usamos provider vazio no setup para poder semear dados com TenantId explícito
+        _context = TestDbContextFactory.Create(new TestTenantProvider(Guid.Empty));
         _loggerMock = new Mock<ILogger<ClientesController>>();
+
+        var config = new TypeAdapterConfig();
+        MappingRegistry.Register(config);
+        _mapper = new Mapper(config);
     }
 
+    private ClientesController CreateController() => new(_context, _mapper, _loggerMock.Object);
+
     [Fact]
-    public async Task GetClientes_DeveRetornarListaDeClientes()
+    public async Task GetClientes_DeveRetornarPagedResult()
     {
-        // Arrange
         _context.Clientes.Add(new Cliente
         {
             Id = 1,
+            TenantId = Guid.NewGuid(),
             Nome = "João Silva",
             Cpf = "12345678901",
             Email = "joao@test.com",
@@ -38,24 +48,21 @@ public class ClientesControllerTests
         });
         await _context.SaveChangesAsync();
 
-        var controller = new ClientesController(_context, _loggerMock.Object);
+        var result = await CreateController().GetClientes(new PageRequest());
 
-        // Act
-        var result = await controller.GetClientes();
-
-        // Assert
-        var actionResult = Assert.IsType<ActionResult<IEnumerable<Cliente>>>(result);
-        var returnValue = Assert.IsAssignableFrom<IEnumerable<Cliente>>(actionResult.Value);
-        Assert.Single(returnValue);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var page = Assert.IsType<PagedResult<ClienteResponse>>(ok.Value);
+        Assert.Single(page.Items);
+        Assert.Equal(1, page.Total);
     }
 
     [Fact]
     public async Task GetCliente_ComIdValido_DeveRetornarCliente()
     {
-        // Arrange
         _context.Clientes.Add(new Cliente
         {
             Id = 2,
+            TenantId = Guid.NewGuid(),
             Nome = "Maria Santos",
             Cpf = "98765432109",
             Email = "maria@test.com",
@@ -63,48 +70,40 @@ public class ClientesControllerTests
         });
         await _context.SaveChangesAsync();
 
-        var controller = new ClientesController(_context, _loggerMock.Object);
+        var result = await CreateController().GetCliente(2);
 
-        // Act
-        var result = await controller.GetCliente(2);
-
-        // Assert
-        var actionResult = Assert.IsType<ActionResult<Cliente>>(result);
-        var returnValue = Assert.IsType<Cliente>(actionResult.Value);
-        Assert.Equal("Maria Santos", returnValue.Nome);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ClienteResponse>(ok.Value);
+        Assert.Equal("Maria Santos", dto.Nome);
     }
 
     [Fact]
     public async Task PostCliente_ComDadosValidos_DeveCriarCliente()
     {
-        // Arrange
-        var controller = new ClientesController(_context, _loggerMock.Object);
-        var novoCliente = new Cliente
+        var request = new ClienteCreateRequest
         {
             Nome = "Pedro Oliveira",
-            Cpf = "11122233344",
+            Cpf = "111.222.333-44",
             Email = "pedro@test.com",
             Telefone = "11977777777"
         };
 
-        // Act
-        var result = await controller.PostCliente(novoCliente);
+        var result = await CreateController().PostCliente(request);
 
-        // Assert
-        var actionResult = Assert.IsType<ActionResult<Cliente>>(result);
-        var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(actionResult.Result);
-        var returnValue = Assert.IsType<Cliente>(createdAtActionResult.Value);
-        Assert.Equal("Pedro Oliveira", returnValue.Nome);
-        Assert.True(returnValue.Id > 0);
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<ClienteResponse>(created.Value);
+        Assert.Equal("Pedro Oliveira", dto.Nome);
+        Assert.Equal("11122233344", dto.Cpf); // CPF normalizado
+        Assert.True(dto.Id > 0);
     }
 
     [Fact]
-    public async Task PostCliente_ComCpfDuplicado_DeveRetornarBadRequest()
+    public async Task PostCliente_ComCpfDuplicado_DeveRetornarConflict()
     {
-        // Arrange
         _context.Clientes.Add(new Cliente
         {
             Id = 3,
+            TenantId = Guid.NewGuid(),
             Nome = "Ana Costa",
             Cpf = "55566677788",
             Email = "ana@test.com",
@@ -112,20 +111,16 @@ public class ClientesControllerTests
         });
         await _context.SaveChangesAsync();
 
-        var controller = new ClientesController(_context, _loggerMock.Object);
-        var novoCliente = new Cliente
+        var request = new ClienteCreateRequest
         {
             Nome = "Outro Cliente",
-            Cpf = "55566677788", // CPF duplicado
+            Cpf = "555.666.777-88",
             Email = "outro@test.com",
             Telefone = "11955555555"
         };
 
-        // Act
-        var result = await controller.PostCliente(novoCliente);
+        var result = await CreateController().PostCliente(request);
 
-        // Assert
-        var actionResult = Assert.IsType<ActionResult<Cliente>>(result);
-        Assert.IsType<BadRequestObjectResult>(actionResult.Result);
+        Assert.IsType<ConflictObjectResult>(result.Result);
     }
 }
