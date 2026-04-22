@@ -43,12 +43,20 @@ public class ExpirarReservasJob
             if (reserva.Apartamento?.Status == StatusApartamento.Reservado)
                 reserva.Apartamento.Status = StatusApartamento.Disponivel;
 
-            if (!string.IsNullOrWhiteSpace(reserva.Cliente?.Email))
+            if (reserva.Cliente?.AceitaEmail == true && !string.IsNullOrWhiteSpace(reserva.Cliente.Email))
             {
                 await _notificador.EnviarEmailAsync(
                     reserva.Cliente.Email,
                     "Sua reserva expirou",
                     $"<p>Olá {reserva.Cliente.Nome},</p><p>Sua reserva do apartamento {reserva.Apartamento?.Numero} expirou. Se ainda tiver interesse, fale com seu corretor.</p>",
+                    cancellationToken);
+            }
+
+            if (reserva.Cliente?.AceitaWhatsapp == true && !string.IsNullOrWhiteSpace(reserva.Cliente.Whatsapp))
+            {
+                await _notificador.EnviarWhatsappAsync(
+                    reserva.Cliente.Whatsapp,
+                    $"Olá {reserva.Cliente.Nome}, sua reserva do apto {reserva.Apartamento?.Numero} expirou. Se tiver interesse, fale com seu corretor.",
                     cancellationToken);
             }
         }

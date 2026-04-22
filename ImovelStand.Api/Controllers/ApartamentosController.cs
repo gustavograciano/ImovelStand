@@ -73,6 +73,7 @@ public class ApartamentosController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin,Gerente")]
+    [Authorization.RequiresPlan(limit: "unidades")]
     public async Task<ActionResult<ApartamentoResponse>> PostApartamento([FromBody] ApartamentoCreateRequest request)
     {
         var torre = await _context.Torres.FirstOrDefaultAsync(t => t.Id == request.TorreId);
