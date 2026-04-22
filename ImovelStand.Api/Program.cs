@@ -40,6 +40,7 @@ try
     builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
     builder.Services.AddSingleton<ImageProcessor>();
     builder.Services.AddSingleton<CalculadoraFinanceira>();
+    builder.Services.AddSingleton<EspelhoPdfGenerator>();
 
     builder.Services.AddSingleton<HistoricoPrecoInterceptor>();
     builder.Services.AddScoped<TenantAssignmentInterceptor>();
