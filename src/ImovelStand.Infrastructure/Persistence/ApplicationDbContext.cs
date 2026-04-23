@@ -45,6 +45,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<WhatsAppTemplate> WhatsAppTemplates => Set<WhatsAppTemplate>();
     public DbSet<WhatsAppMensagem> WhatsAppMensagens => Set<WhatsAppMensagem>();
     public DbSet<NumeroWhatsApp> NumerosWhatsApp => Set<NumeroWhatsApp>();
+    public DbSet<PrecoMercado> PrecosMercado => Set<PrecoMercado>();
+    public DbSet<SugestaoPreco> SugestoesPreco => Set<SugestaoPreco>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -434,6 +436,27 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Usuario)
                 .WithMany()
                 .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PrecoMercado>(entity =>
+        {
+            entity.HasIndex(e => new { e.Cidade, e.Uf, e.Bairro, e.Quartos, e.DataReferencia });
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        modelBuilder.Entity<SugestaoPreco>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Status, e.CreatedAt });
+            entity.HasIndex(e => new { e.TenantId, e.ApartamentoId });
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Apartamento)
+                .WithMany()
+                .HasForeignKey(e => e.ApartamentoId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.AceitaPorUsuario)
+                .WithMany()
+                .HasForeignKey(e => e.AceitaPorUsuarioId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

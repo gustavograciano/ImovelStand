@@ -22,6 +22,7 @@ const PropostasPage = lazy(() => import('@/pages/PropostasPage').then(m => ({ de
 const VendasPage = lazy(() => import('@/pages/VendasPage').then(m => ({ default: m.VendasPage })));
 const UsuariosPage = lazy(() => import('@/pages/UsuariosPage').then(m => ({ default: m.UsuariosPage })));
 const SimuladorPage = lazy(() => import('@/pages/SimuladorPage').then(m => ({ default: m.SimuladorPage })));
+const PrecificacaoPage = lazy(() => import('@/pages/PrecificacaoPage').then(m => ({ default: m.PrecificacaoPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,7 @@ export default function App() {
                   <Route path="vendas" element={<VendasPage />} />
                   <Route path="usuarios" element={<UsuariosPage />} />
                   <Route path="simulador" element={<SimuladorPage />} />
+                  <Route path="precificacao" element={<PrecificacaoPage />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

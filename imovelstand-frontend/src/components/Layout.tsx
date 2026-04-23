@@ -27,6 +27,7 @@ import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 import GroupIcon from '@mui/icons-material/Group';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
@@ -51,6 +52,7 @@ const NAV: NavItem[] = [
   { to: '/propostas', label: 'Propostas', icon: <DescriptionIcon fontSize="small" /> },
   { to: '/vendas', label: 'Vendas', icon: <PointOfSaleIcon fontSize="small" /> },
   { to: '/simulador', label: 'Simulador', icon: <CalculateIcon fontSize="small" /> },
+  { to: '/precificacao', label: 'Precificação IA', icon: <TrendingUpIcon fontSize="small" />, adminOnly: false },
   { to: '/usuarios', label: 'Usuários', icon: <GroupIcon fontSize="small" />, adminOnly: true }
 ];
 
