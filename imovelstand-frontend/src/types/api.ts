@@ -27,6 +27,8 @@ export type StatusProposta = 'Rascunho' | 'Enviada' | 'ContrapropostaCliente' | 
 export type StatusVenda = 'Negociada' | 'EmContrato' | 'Assinada' | 'Cancelada' | 'Distratada';
 export type IndiceReajuste = 'SemReajuste' | 'Incc' | 'Ipca' | 'Igpm' | 'Tr' | 'Selic';
 export type TipoInteracao = 'Ligacao' | 'Whatsapp' | 'Email' | 'ReuniaoPresencial' | 'ReuniaoVideo' | 'Visita' | 'MensagemInterna';
+export type EstadoCivil = 'Solteiro' | 'Casado' | 'Divorciado' | 'Viuvo' | 'UniaoEstavel' | 'Separado';
+export type RegimeBens = 'ComunhaoParcial' | 'ComunhaoUniversal' | 'SeparacaoTotal' | 'ParticipacaoFinalAquestos';
 
 export interface ApartamentoResponse {
   id: number;
@@ -131,7 +133,8 @@ export interface ClienteCreateRequest {
   cpf: string;
   rg?: string;
   dataNascimento?: string;
-  estadoCivil?: string;
+  estadoCivil?: EstadoCivil;
+  regimeBens?: RegimeBens;
   profissao?: string;
   empresa?: string;
   rendaMensal?: number;
