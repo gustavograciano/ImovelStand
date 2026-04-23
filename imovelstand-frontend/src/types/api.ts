@@ -43,6 +43,56 @@ export interface ApartamentoResponse {
   dataCadastro: string;
 }
 
+export interface EmpreendimentoResponse {
+  id: number;
+  nome: string;
+  slug: string;
+  descricao?: string | null;
+  construtora?: string | null;
+  endereco?: EnderecoDto | null;
+  dataLancamento?: string | null;
+  dataEntregaPrevista?: string | null;
+  status: string;
+  vgvEstimado?: number | null;
+  dataCadastro: string;
+}
+
+export interface TorreResponse {
+  id: number;
+  empreendimentoId: number;
+  empreendimentoNome?: string | null;
+  nome: string;
+  pavimentos: number;
+  apartamentosPorPavimento: number;
+  qtdApartamentos: number;
+}
+
+export interface TipologiaResponse {
+  id: number;
+  empreendimentoId: number;
+  nome: string;
+  areaPrivativa: number;
+  areaTotal: number;
+  quartos: number;
+  suites: number;
+  banheiros: number;
+  vagas: number;
+  precoBase: number;
+  plantaUrl?: string | null;
+}
+
+export interface UsuarioResponse {
+  id: number;
+  nome: string;
+  email: string;
+  role: string;
+  creci?: string | null;
+  percentualComissao?: number | null;
+  ativo: boolean;
+  ultimoLoginEm?: string | null;
+  dataCadastro: string;
+}
+
 export interface EnderecoDto {
   logradouro: string;
   numero: string;

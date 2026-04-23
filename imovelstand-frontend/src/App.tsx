@@ -15,6 +15,7 @@ const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ defaul
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const ApartamentosPage = lazy(() => import('@/pages/ApartamentosPage').then(m => ({ default: m.ApartamentosPage })));
+const EmpreendimentosPage = lazy(() => import('@/pages/EmpreendimentosPage').then(m => ({ default: m.EmpreendimentosPage })));
 const ClientesPage = lazy(() => import('@/pages/ClientesPage').then(m => ({ default: m.ClientesPage })));
 const ClienteDetailPage = lazy(() => import('@/pages/ClienteDetailPage').then(m => ({ default: m.ClienteDetailPage })));
 const PropostasPage = lazy(() => import('@/pages/PropostasPage').then(m => ({ default: m.PropostasPage })));
@@ -62,6 +63,7 @@ export default function App() {
                 >
                   <Route index element={<HomePage />} />
                   <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="empreendimentos" element={<EmpreendimentosPage />} />
                   <Route path="apartamentos" element={<ApartamentosPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
                   <Route path="clientes/:id" element={<ClienteDetailPage />} />

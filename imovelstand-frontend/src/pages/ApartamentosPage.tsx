@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
   MenuItem,
@@ -20,10 +21,13 @@ import {
   ToggleButtonGroup,
   Typography
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { apartamentosService, type ApartamentoFilter } from '@/services/apartamentosService';
 import { MapaEmpreendimento } from '@/components/MapaEmpreendimento';
+import { NovoApartamentoDialog } from '@/components/NovoApartamentoDialog';
+import { useAuthStore } from '@/stores/authStore';
 import type { StatusApartamento } from '@/types/api';
 
 const statusOptions: Array<{ value: StatusApartamento | ''; label: string }> = [
@@ -45,10 +49,13 @@ const statusColors: Record<StatusApartamento, 'success' | 'warning' | 'info' | '
 type ViewMode = 'list' | 'map';
 
 export function ApartamentosPage() {
+  const role = useAuthStore((s) => s.user?.role);
+  const canCreate = role === 'Admin' || role === 'Gerente';
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [status, setStatus] = useState<StatusApartamento | ''>('');
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const listFilter = useMemo<ApartamentoFilter>(
     () => ({ page: page + 1, pageSize, ...(status ? { status } : {}) }),
@@ -75,7 +82,12 @@ export function ApartamentosPage() {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="flex-end" alignItems="center">
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+        {canCreate ? (
+          <Button startIcon={<AddIcon />} onClick={() => setNovoOpen(true)}>
+            Novo apartamento
+          </Button>
+        ) : <Box />}
         <ToggleButtonGroup
           value={viewMode}
           exclusive
@@ -86,6 +98,8 @@ export function ApartamentosPage() {
           <ToggleButton value="map"><ViewModuleIcon fontSize="small" sx={{ mr: 0.5 }} />Espelho</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
+
+      <NovoApartamentoDialog open={novoOpen} onClose={() => setNovoOpen(false)} />
 
       <Paper sx={{ p: 2 }}>
         <TextField
