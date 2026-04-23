@@ -62,11 +62,14 @@ export function MapaEmpreendimento({ apartamentos, torreNome, onApartamentoClick
               <Stack key={pav} direction="row" spacing={0.5} alignItems="center">
                 <Box
                   sx={{
-                    minWidth: 56,
+                    minWidth: 64,
                     px: 1,
                     py: 1,
                     textAlign: 'center',
-                    bgcolor: 'grey.100',
+                    bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'grey.100'),
+                    color: 'text.secondary',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     borderRadius: 1,
                     fontSize: 12,
                     fontWeight: 700

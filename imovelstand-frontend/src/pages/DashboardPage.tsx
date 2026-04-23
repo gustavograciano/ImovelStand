@@ -46,7 +46,6 @@ export function DashboardPage() {
   return (
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2}>
-        <Typography variant="h4" fontWeight={700}>Dashboard</Typography>
         <TextField
           type="number"
           size="small"

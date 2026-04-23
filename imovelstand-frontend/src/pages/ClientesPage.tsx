@@ -103,34 +103,32 @@ export function ClientesPage() {
   }, [data]);
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h4" fontWeight={700}>Clientes</Typography>
-        <Button
-          startIcon={<AddIcon />}
-          onClick={() => {
-            reset({ nome: '', cpf: '', email: '', telefone: '', consentimentoLgpd: true });
-            setDialogOpen(true);
-          }}
-        >
-          Novo cliente
-        </Button>
-      </Stack>
-
+    <Stack spacing={3}>
       <Paper sx={{ p: 2 }}>
-        <TextField
-          select
-          size="small"
-          label="Origem"
-          value={filtroOrigem}
-          onChange={(e) => setFiltroOrigem(e.target.value as OrigemLead | '')}
-          sx={{ minWidth: 200 }}
-        >
-          <MenuItem value="">Todas</MenuItem>
-          {ORIGENS.map((o) => (
-            <MenuItem key={o} value={o}>{o}</MenuItem>
-          ))}
-        </TextField>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+          <TextField
+            select
+            size="small"
+            label="Origem"
+            value={filtroOrigem}
+            onChange={(e) => setFiltroOrigem(e.target.value as OrigemLead | '')}
+            sx={{ minWidth: 220 }}
+          >
+            <MenuItem value="">Todas origens</MenuItem>
+            {ORIGENS.map((o) => (
+              <MenuItem key={o} value={o}>{o}</MenuItem>
+            ))}
+          </TextField>
+          <Button
+            startIcon={<AddIcon />}
+            onClick={() => {
+              reset({ nome: '', cpf: '', email: '', telefone: '', consentimentoLgpd: true });
+              setDialogOpen(true);
+            }}
+          >
+            Novo cliente
+          </Button>
+        </Stack>
       </Paper>
 
       {error ? <Alert severity="error">Erro ao carregar clientes.</Alert> : null}
@@ -150,7 +148,15 @@ export function ClientesPage() {
           }}
         >
           {FUNIL_STAGES.map((stage) => (
-            <Paper key={stage} sx={{ p: 1.5, bgcolor: 'grey.50' }} elevation={0}>
+            <Paper
+              key={stage}
+              sx={{
+                p: 1.5,
+                bgcolor: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'grey.50'),
+                minHeight: 360
+              }}
+              elevation={0}
+            >
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: FUNIL_COLORS[stage] }} />
                 <Typography variant="subtitle2" fontWeight={700}>
