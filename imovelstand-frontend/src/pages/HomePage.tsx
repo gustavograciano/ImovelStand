@@ -1,4 +1,5 @@
 import { Link as RouterLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Button,
@@ -7,6 +8,7 @@ import {
   Chip,
   Divider,
   Grid,
+  Skeleton,
   Stack,
   Typography
 } from '@mui/material';
@@ -18,7 +20,14 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { dashboardService } from '@/services/dashboardService';
 import { useAuthStore } from '@/stores/authStore';
+
+function formatBRL(v: number): string {
+  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}k`;
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
 
 interface ShortcutProps {
   to: string;
@@ -78,7 +87,7 @@ function Shortcut({ to, icon, title, description, accent }: ShortcutProps) {
   );
 }
 
-function StatCard({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: string }) {
+function StatCard({ label, value, hint, accent, loading }: { label: string; value: string; hint?: string; accent?: string; loading?: boolean }) {
   const theme = useTheme();
   return (
     <Card sx={{ height: '100%' }}>
@@ -86,17 +95,21 @@ function StatCard({ label, value, hint, accent }: { label: string; value: string
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>
           {label}
         </Typography>
-        <Typography
-          variant="h4"
-          fontWeight={700}
-          sx={{
-            color: accent ?? 'text.primary',
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em'
-          }}
-        >
-          {value}
-        </Typography>
+        {loading ? (
+          <Skeleton width={120} height={40} />
+        ) : (
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{
+              color: accent ?? 'text.primary',
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            {value}
+          </Typography>
+        )}
         {hint ? (
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
             <TrendingUpIcon sx={{ fontSize: 14, color: theme.palette.success.main }} />
@@ -116,8 +129,21 @@ export function HomePage() {
   const hora = new Date().getHours();
   const saudacao = hora < 6 ? 'Boa madrugada' : hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
+  // Busca KPIs reais do primeiro empreendimento (placeholder; ideal futuro: dropdown)
+  const { data, isLoading } = useQuery({
+    queryKey: ['home-overview', 1],
+    queryFn: () => dashboardService.overview(1),
+    retry: 0
+  });
+
+  const unidadesTotal = data?.unidadesTotal ?? 0;
+  const disponiveis = data?.unidadesDisponiveis ?? 0;
+  const emNegociacao = (data?.unidadesReservadas ?? 0) + (data?.unidadesEmProposta ?? 0);
+  const vgvTotal = data?.vgvTotal ?? 0;
+  const pctDisponivel = unidadesTotal > 0 ? Math.round((disponiveis / unidadesTotal) * 100) : 0;
+
   return (
-    <Stack spacing={4} sx={{ maxWidth: 1440 }}>
+    <Stack spacing={4}>
       {/* Hero */}
       <Box>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }}>
@@ -142,16 +168,39 @@ export function HomePage() {
       {/* Stats */}
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Unidades ativas" value="48" hint="2 torres, 3 tipologias" />
+          <StatCard
+            label="Unidades ativas"
+            value={unidadesTotal.toString()}
+            hint={data?.empreendimentoNome ?? 'carregando...'}
+            loading={isLoading}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Disponíveis" value="48" accent="#10b981" hint="100% livres" />
+          <StatCard
+            label="Disponíveis"
+            value={disponiveis.toString()}
+            accent="#10b981"
+            hint={`${pctDisponivel}% do total`}
+            loading={isLoading}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="Em negociação" value="0" accent="#f59e0b" hint="Nenhuma proposta aberta" />
+          <StatCard
+            label="Em negociação"
+            value={emNegociacao.toString()}
+            accent="#f59e0b"
+            hint={emNegociacao === 0 ? 'Nenhuma proposta aberta' : 'reserva + proposta'}
+            loading={isLoading}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard label="VGV Total" value="R$ 23M" accent="#6366f1" hint="estimado para o empreendimento" />
+          <StatCard
+            label="VGV Total"
+            value={formatBRL(vgvTotal)}
+            accent="#6366f1"
+            hint={data?.vgvVendido ? `${formatBRL(data.vgvVendido)} vendido` : 'estimado'}
+            loading={isLoading}
+          />
         </Grid>
       </Grid>
 

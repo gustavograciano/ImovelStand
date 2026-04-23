@@ -78,7 +78,14 @@ export function Layout() {
         sx={{
           width: DRAWER_WIDTH,
           flexShrink: 0,
-          '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' }
+          '& .MuiDrawer-paper': {
+            width: DRAWER_WIDTH,
+            boxSizing: 'border-box',
+            // Garante que a sidebar acompanha o modo do tema (dark/light)
+            bgcolor: 'background.paper',
+            borderRight: '1px solid',
+            borderColor: 'divider'
+          }
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -189,15 +196,18 @@ export function Layout() {
             top: 0,
             zIndex: theme.zIndex.appBar,
             backdropFilter: 'blur(8px)',
-            bgcolor: mode === 'dark' ? 'rgba(9,9,11,0.8)' : 'rgba(255,255,255,0.8)',
+            bgcolor: (t) =>
+              t.palette.mode === 'dark'
+                ? 'rgba(9,9,11,0.8)'
+                : 'rgba(255,255,255,0.85)',
             borderBottom: '1px solid',
             borderColor: 'divider',
-            px: 3,
-            py: 1.5
+            px: 4,
+            py: 2
           }}
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight={700} letterSpacing="-0.01em">
+            <Typography variant="h5" fontWeight={700} letterSpacing="-0.02em">
               {currentLabel}
             </Typography>
             <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -211,7 +221,7 @@ export function Layout() {
         </Box>
 
         {/* Content */}
-        <Box component="main" sx={{ flex: 1, p: 3, minWidth: 0 }}>
+        <Box component="main" sx={{ flex: 1, p: 4, minWidth: 0 }}>
           <Outlet />
         </Box>
       </Box>

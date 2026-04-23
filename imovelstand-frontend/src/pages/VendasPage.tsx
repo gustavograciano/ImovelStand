@@ -69,9 +69,7 @@ export function VendasPage() {
   };
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h4" fontWeight={700}>Vendas</Typography>
-
+    <Stack spacing={3}>
       <Paper sx={{ p: 2 }}>
         <TextField
           select
@@ -89,7 +87,7 @@ export function VendasPage() {
 
       {isError ? <Alert severity="error">Erro ao carregar vendas.</Alert> : null}
 
-      <Paper>
+      <Paper sx={{ width: "100%" }}>
         {isLoading ? (
           <Box sx={{ p: 4, display: 'grid', placeItems: 'center' }}>
             <CircularProgress />

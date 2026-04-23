@@ -103,9 +103,7 @@ export function PropostasPage() {
   };
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h4" fontWeight={700}>Propostas</Typography>
-
+    <Stack spacing={3}>
       <Paper sx={{ p: 2 }}>
         <TextField
           select
@@ -123,7 +121,7 @@ export function PropostasPage() {
 
       {isError ? <Alert severity="error">Erro ao carregar propostas.</Alert> : null}
 
-      <Paper>
+      <Paper sx={{ width: "100%" }}>
         {isLoading ? (
           <Box sx={{ p: 4, display: 'grid', placeItems: 'center' }}>
             <CircularProgress />
