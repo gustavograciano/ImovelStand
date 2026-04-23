@@ -18,8 +18,10 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { vendasService } from '@/services/vendasService';
 import { useAuthStore } from '@/stores/authStore';
+import { NovaVendaDialog } from '@/components/NovaVendaDialog';
 import type { StatusVenda, VendaResponse } from '@/types/api';
 
 const STATUS_COLORS: Record<StatusVenda, 'default' | 'primary' | 'warning' | 'success' | 'error'> = {
@@ -38,9 +40,11 @@ function formatBRL(v: number): string {
 
 export function VendasPage() {
   const [status, setStatus] = useState<StatusVenda | ''>('');
+  const [novaOpen, setNovaOpen] = useState(false);
   const queryClient = useQueryClient();
   const userRole = useAuthStore((s) => s.user?.role);
   const podeAprovar = userRole === 'Admin' || userRole === 'Gerente';
+  const podeCriar = userRole === 'Admin' || userRole === 'Gerente' || userRole === 'Corretor';
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['vendas', status],
@@ -71,19 +75,28 @@ export function VendasPage() {
   return (
     <Stack spacing={3}>
       <Paper sx={{ p: 2 }}>
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as StatusVenda | '')}
-          sx={{ minWidth: 200 }}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>{s || 'Todos'}</MenuItem>
-          ))}
-        </TextField>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+          <TextField
+            select
+            size="small"
+            label="Status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as StatusVenda | '')}
+            sx={{ minWidth: 200 }}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <MenuItem key={s || 'all'} value={s}>{s || 'Todos'}</MenuItem>
+            ))}
+          </TextField>
+          {podeCriar ? (
+            <Button startIcon={<AddIcon />} onClick={() => setNovaOpen(true)}>
+              Nova venda
+            </Button>
+          ) : null}
+        </Stack>
       </Paper>
+
+      <NovaVendaDialog open={novaOpen} onClose={() => setNovaOpen(false)} />
 
       {isError ? <Alert severity="error">Erro ao carregar vendas.</Alert> : null}
 
