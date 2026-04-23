@@ -30,6 +30,20 @@ namespace ImovelStand.Infrastructure.Migrations
                 table: "Vendas",
                 newName: "DataFechamento");
 
+            // Converte strings de Venda.Status para códigos do enum StatusVenda antes do ALTER.
+            migrationBuilder.Sql(@"
+                UPDATE [Vendas] SET [Status] = CASE [Status]
+                    WHEN N'Negociada' THEN '0'
+                    WHEN N'EmContrato' THEN '1'
+                    WHEN N'Concluída' THEN '2'
+                    WHEN N'Concluida' THEN '2'
+                    WHEN N'Assinada' THEN '2'
+                    WHEN N'Cancelada' THEN '3'
+                    WHEN N'Distratada' THEN '4'
+                    ELSE '0'
+                END;
+            ");
+
             migrationBuilder.AlterColumn<int>(
                 name: "Status",
                 table: "Vendas",
@@ -346,7 +360,7 @@ namespace ImovelStand.Infrastructure.Migrations
                 column: "CorretorCaptacaoId",
                 principalTable: "Usuarios",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.NoAction);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Vendas_Usuarios_CorretorId",
@@ -362,7 +376,7 @@ namespace ImovelStand.Infrastructure.Migrations
                 column: "GerenteAprovadorId",
                 principalTable: "Usuarios",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.NoAction);
         }
 
         /// <inheritdoc />

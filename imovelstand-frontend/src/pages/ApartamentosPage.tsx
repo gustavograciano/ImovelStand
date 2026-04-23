@@ -75,8 +75,7 @@ export function ApartamentosPage() {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h4" fontWeight={700}>Apartamentos</Typography>
+      <Stack direction="row" justifyContent="flex-end" alignItems="center">
         <ToggleButtonGroup
           value={viewMode}
           exclusive
@@ -115,7 +114,7 @@ export function ApartamentosPage() {
       ) : viewMode === 'map' ? (
         <MapaEmpreendimento apartamentos={mapQuery.data?.items ?? []} />
       ) : (
-        <Paper>
+        <Paper sx={{ width: "100%" }}>
           <TableContainer>
             <Table size="small">
               <TableHead>

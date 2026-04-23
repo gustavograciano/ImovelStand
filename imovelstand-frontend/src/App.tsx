@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { Box, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
@@ -6,7 +6,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Layout } from '@/components/Layout';
 import { RequireAuth } from '@/components/RequireAuth';
 import { LoginPage } from '@/pages/LoginPage';
-import { theme } from '@/theme';
+import { useUiStore } from '@/stores/uiStore';
+import { buildTheme } from '@/theme';
 
 // Code-splitting: rotas autenticadas viram chunks separados.
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -38,6 +39,9 @@ function PageLoader() {
 }
 
 export default function App() {
+  const mode = useUiStore((s) => s.mode);
+  const theme = useMemo(() => buildTheme(mode), [mode]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>

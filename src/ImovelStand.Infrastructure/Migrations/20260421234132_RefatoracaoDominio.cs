@@ -45,6 +45,20 @@ namespace ImovelStand.Infrastructure.Migrations
                 table: "Apartamentos",
                 newName: "Pavimento");
 
+            // Converte os valores string existentes para o código numérico do enum StatusApartamento
+            // antes de alterar o tipo da coluna. Sem isso, ALTER COLUMN falha no SQL Server real.
+            migrationBuilder.Sql(@"
+                UPDATE [Apartamentos] SET [Status] = CASE [Status]
+                    WHEN N'Disponível' THEN '0'
+                    WHEN N'Disponivel' THEN '0'
+                    WHEN N'Reservado' THEN '1'
+                    WHEN N'Proposta' THEN '2'
+                    WHEN N'Vendido' THEN '3'
+                    WHEN N'Bloqueado' THEN '4'
+                    ELSE '0'
+                END;
+            ");
+
             migrationBuilder.AlterColumn<int>(
                 name: "Status",
                 table: "Apartamentos",
