@@ -202,6 +202,20 @@ try
                 AutoReplenishment = true
             });
         });
+
+        // /api/publico/*: 20 req/min por IP. Protege simulador embeddado
+        // contra abuso sem bloquear o site legítimo da incorporadora.
+        options.AddPolicy("publico", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+        });
     });
 
     // Health checks: DB + readiness
