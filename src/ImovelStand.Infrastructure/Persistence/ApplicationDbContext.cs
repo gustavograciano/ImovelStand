@@ -551,10 +551,29 @@ public class ApplicationDbContext : DbContext
                 Email = "corretor@imovelstand.com",
                 SenhaHash = "$2a$11$D8sg3FrM1EI689Z905iG2ubYw/m6LSlI3au9TWZFWd9dCFhw9rxQS",
                 Role = "Corretor",
+                Creci = "SP-123456",
+                // 3% de comissão sobre venda — sem isso, o endpoint de criar
+                // venda nao gera Comissao automatica para este corretor.
+                PercentualComissao = 0.03m,
                 DataCadastro = seedDate,
                 Ativo = true
             }
         );
+
+        // Assinatura ativa do tenant demo — sem isso, endpoints com
+        // [RequiresPlan] retornam 402 e bloqueiam criação de apto/empreend/usuario.
+        modelBuilder.Entity<Assinatura>().HasData(new
+        {
+            Id = 1,
+            TenantId = tenantId,
+            PlanoId = 2, // Pro: 5 empreendimentos, 500 unidades, 15 usuários
+            Status = StatusAssinatura.Ativa,
+            IuguCustomerId = "seed-demo-cust",
+            IuguSubscriptionId = "seed-demo-sub",
+            DataInicio = seedDate,
+            ProximaCobranca = seedDate.AddDays(30),
+            CreatedAt = seedDate
+        });
 
         modelBuilder.Entity<Empreendimento>().HasData(new
         {

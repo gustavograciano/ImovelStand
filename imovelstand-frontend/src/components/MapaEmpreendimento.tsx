@@ -22,24 +22,38 @@ function formatBRL(v: number): string {
 
 /**
  * Grid visual tipo "espelho de vendas" de um empreendimento.
- * Organiza apartamentos por pavimento (linhas, de cima pra baixo) e
- * por unidade dentro do pavimento (colunas). Cada célula colorida pelo status.
+ * Agrupa por Torre (blocos separados) e dentro de cada torre, por pavimento
+ * (linhas de cima pra baixo) e unidades (colunas). Cada célula colorida
+ * pelo status.
  */
 export function MapaEmpreendimento({ apartamentos, torreNome, onApartamentoClick }: MapaEmpreendimentoProps) {
-  const porPavimento = useMemo(() => {
-    const grupos = new Map<number, ApartamentoResponse[]>();
+  const porTorre = useMemo(() => {
+    // Agrupa por torre (usa torreNome; fallback para torreId se o nome vier null)
+    const porTorreMap = new Map<string, ApartamentoResponse[]>();
     for (const apt of apartamentos) {
-      const arr = grupos.get(apt.pavimento) ?? [];
+      const chave = apt.torreNome ?? `Torre #${apt.torreId}`;
+      const arr = porTorreMap.get(chave) ?? [];
       arr.push(apt);
-      grupos.set(apt.pavimento, arr);
+      porTorreMap.set(chave, arr);
     }
-    // Do topo pro térreo
-    return Array.from(grupos.entries())
-      .sort(([a], [b]) => b - a)
-      .map(([pav, apts]) => [pav, apts.sort((a, b) => a.numero.localeCompare(b.numero))] as const);
+    // Dentro de cada torre, agrupa por pavimento (topo -> térreo)
+    return Array.from(porTorreMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([nomeTorre, apts]) => {
+        const porPav = new Map<number, ApartamentoResponse[]>();
+        for (const apt of apts) {
+          const arr = porPav.get(apt.pavimento) ?? [];
+          arr.push(apt);
+          porPav.set(apt.pavimento, arr);
+        }
+        const pavimentos = Array.from(porPav.entries())
+          .sort(([a], [b]) => b - a)
+          .map(([pav, list]) => [pav, list.sort((a, b) => a.numero.localeCompare(b.numero))] as const);
+        return [nomeTorre, pavimentos] as const;
+      });
   }, [apartamentos]);
 
-  if (porPavimento.length === 0) {
+  if (porTorre.length === 0) {
     return (
       <Paper sx={{ p: 3, textAlign: 'center' }}>
         <Typography color="text.secondary">Sem apartamentos para exibir.</Typography>
@@ -48,17 +62,17 @@ export function MapaEmpreendimento({ apartamentos, torreNome, onApartamentoClick
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Stack spacing={2}>
-        {torreNome ? (
-          <Typography variant="h6" fontWeight={700}>
-            {torreNome}
-          </Typography>
-        ) : null}
+    <Stack spacing={3}>
+      {porTorre.map(([nomeTorre, pavimentos]) => (
+        <Paper key={nomeTorre} sx={{ p: 2 }}>
+          <Stack spacing={2}>
+            <Typography variant="h6" fontWeight={700}>
+              {torreNome ?? nomeTorre}
+            </Typography>
 
-        <Box sx={{ overflowX: 'auto' }}>
-          <Stack spacing={0.5}>
-            {porPavimento.map(([pav, apts]) => (
+            <Box sx={{ overflowX: 'auto' }}>
+              <Stack spacing={0.5}>
+                {pavimentos.map(([pav, apts]) => (
               <Stack key={pav} direction="row" spacing={0.5} alignItems="center">
                 <Box
                   sx={{
@@ -120,11 +134,16 @@ export function MapaEmpreendimento({ apartamentos, torreNome, onApartamentoClick
                   </Tooltip>
                 ))}
               </Stack>
-            ))}
+                ))}
+              </Stack>
+            </Box>
           </Stack>
-        </Box>
+        </Paper>
+      ))}
 
-        <Stack direction="row" spacing={2} sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+      {/* Legenda unica para todas as torres */}
+      <Paper sx={{ p: 1.5 }}>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
           {(Object.keys(STATUS_COLORS) as StatusApartamento[]).map((s) => (
             <Stack key={s} direction="row" alignItems="center" spacing={0.5}>
               <Box sx={{ width: 12, height: 12, bgcolor: STATUS_COLORS[s], borderRadius: 0.5 }} />
@@ -132,7 +151,7 @@ export function MapaEmpreendimento({ apartamentos, torreNome, onApartamentoClick
             </Stack>
           ))}
         </Stack>
-      </Stack>
-    </Paper>
+      </Paper>
+    </Stack>
   );
 }

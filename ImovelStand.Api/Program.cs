@@ -293,17 +293,31 @@ try
     app.UseSerilogRequestLogging();
     app.UseMiddleware<ProblemDetailsMiddleware>();
 
+    // Aplica migrations pendentes + loga nome de cada uma aplicada.
+    // Em produção isso permite observar se um deploy veio com schema changes.
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
         try
         {
             var context = services.GetRequiredService<ApplicationDbContext>();
-            context.Database.Migrate();
+            var pendentes = (await context.Database.GetPendingMigrationsAsync()).ToList();
+            if (pendentes.Count > 0)
+            {
+                Log.Information("Aplicando {Count} migrations pendentes: {Names}",
+                    pendentes.Count, string.Join(", ", pendentes));
+                await context.Database.MigrateAsync();
+                Log.Information("Migrations aplicadas com sucesso.");
+            }
+            else
+            {
+                Log.Information("Banco de dados já está na versão mais recente.");
+            }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Erro ao aplicar migrations no banco de dados.");
+            Log.Error(ex, "Erro CRÍTICO ao aplicar migrations — a API não pode iniciar com schema desatualizado.");
+            throw; // falhar fast ao invés de silenciar
         }
     }
 

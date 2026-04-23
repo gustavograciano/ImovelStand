@@ -45,6 +45,16 @@ export default defineConfig({
       '@': path.resolve(dir, 'src')
     }
   },
+  // strictPort: falha ao iniciar se a porta 5173 ja estiver ocupada, evitando
+  // conectar ao servidor antigo sem as variaveis de ambiente corretas (.env).
+  server: {
+    port: 5173,
+    strictPort: true
+  },
+  preview: {
+    port: 5173,
+    strictPort: true
+  },
   build: {
     chunkSizeWarningLimit: 700,
     rollupOptions: {
