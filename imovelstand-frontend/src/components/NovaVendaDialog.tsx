@@ -137,27 +137,35 @@ export function NovaVendaDialog({ open, onClose }: Props) {
     [propostasQuery.data, propostaIdSel]
   );
 
+  // Auto-preenche TODOS os campos quando uma proposta aceita eh selecionada.
+  // Usamos reset() (em vez de setValue individual) para forçar re-render dos
+  // inputs numericos uncontrolled — setValue so atualiza o state RHF, nao o DOM.
   useEffect(() => {
     if (propostaSelecionada) {
-      setValue('clienteId', propostaSelecionada.clienteId);
-      setValue('apartamentoId', propostaSelecionada.apartamentoId);
-      setValue('corretorId', propostaSelecionada.corretorId);
-      setValue('valorFinal', propostaSelecionada.valorOferecido);
       const c = propostaSelecionada.condicao;
-      setValue('valorTotal', c.valorTotal);
-      setValue('entrada', c.entrada);
-      setValue('sinal', c.sinal);
-      setValue('qtdParcelasMensais', c.qtdParcelasMensais);
-      setValue('valorParcelaMensal', c.valorParcelaMensal);
-      setValue('qtdSemestrais', c.qtdSemestrais);
-      setValue('valorSemestral', c.valorSemestral);
-      setValue('valorChaves', c.valorChaves);
-      setValue('qtdPosChaves', c.qtdPosChaves);
-      setValue('valorPosChaves', c.valorPosChaves);
-      setValue('indice', c.indice);
-      setValue('taxaJurosAnual', c.taxaJurosAnual);
+      reset({
+        propostaId: String(propostaSelecionada.id),
+        clienteId: propostaSelecionada.clienteId,
+        apartamentoId: propostaSelecionada.apartamentoId,
+        corretorId: propostaSelecionada.corretorId,
+        corretorCaptacaoId: '',
+        valorFinal: propostaSelecionada.valorOferecido,
+        valorTotal: c.valorTotal,
+        entrada: c.entrada,
+        sinal: c.sinal,
+        qtdParcelasMensais: c.qtdParcelasMensais,
+        valorParcelaMensal: c.valorParcelaMensal,
+        qtdSemestrais: c.qtdSemestrais,
+        valorSemestral: c.valorSemestral,
+        valorChaves: c.valorChaves,
+        qtdPosChaves: c.qtdPosChaves,
+        valorPosChaves: c.valorPosChaves,
+        indice: c.indice,
+        taxaJurosAnual: c.taxaJurosAnual,
+        observacoes: ''
+      });
     }
-  }, [propostaSelecionada, setValue]);
+  }, [propostaSelecionada, reset]);
 
   const createMutation = useMutation({
     mutationFn: (d: FormData) =>
@@ -202,17 +210,23 @@ export function NovaVendaDialog({ open, onClose }: Props) {
         <DialogTitle>Nova venda</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {/*
+              MUI TextField select + RHF register() não dispara onChange de forma
+              confiável — precisa modo controlado explicito via value+onChange
+              com watch/setValue. Sem isso, setValue (auto-preencher a partir da
+              proposta) não reflete na UI e form submit falha silenciosamente.
+            */}
             <TextField
               select
               label="Proposta (aceita) — opcional"
               fullWidth
-              defaultValue=""
-              {...register('propostaId')}
+              value={watch('propostaId') ?? ''}
+              onChange={(e) => setValue('propostaId', e.target.value, { shouldValidate: true })}
               helperText="Selecione para preencher automaticamente"
             >
               <MenuItem value="">Sem proposta vinculada</MenuItem>
               {(propostasQuery.data?.items ?? []).map((p) => (
-                <MenuItem key={p.id} value={p.id}>
+                <MenuItem key={p.id} value={String(p.id)}>
                   {p.numero} — {p.clienteNome ?? p.clienteId} — {p.valorOferecido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </MenuItem>
               ))}
@@ -222,8 +236,8 @@ export function NovaVendaDialog({ open, onClose }: Props) {
               select
               label="Cliente"
               fullWidth
-              defaultValue=""
-              {...register('clienteId')}
+              value={watch('clienteId') || ''}
+              onChange={(e) => setValue('clienteId', Number(e.target.value) || 0, { shouldValidate: true })}
               error={!!errors.clienteId}
               helperText={errors.clienteId?.message}
             >
@@ -237,8 +251,8 @@ export function NovaVendaDialog({ open, onClose }: Props) {
               select
               label="Apartamento"
               fullWidth
-              defaultValue=""
-              {...register('apartamentoId')}
+              value={watch('apartamentoId') || ''}
+              onChange={(e) => setValue('apartamentoId', Number(e.target.value) || 0, { shouldValidate: true })}
               error={!!errors.apartamentoId}
               helperText={errors.apartamentoId?.message}
             >
@@ -255,8 +269,8 @@ export function NovaVendaDialog({ open, onClose }: Props) {
                 select
                 label="Corretor de venda"
                 fullWidth
-                defaultValue=""
-                {...register('corretorId')}
+                value={watch('corretorId') || ''}
+                onChange={(e) => setValue('corretorId', Number(e.target.value) || 0, { shouldValidate: true })}
                 error={!!errors.corretorId}
                 helperText={errors.corretorId?.message}
               >
@@ -270,8 +284,8 @@ export function NovaVendaDialog({ open, onClose }: Props) {
                 select
                 label="Corretor de captação (opcional)"
                 fullWidth
-                defaultValue=""
-                {...register('corretorCaptacaoId')}
+                value={watch('corretorCaptacaoId') ?? ''}
+                onChange={(e) => setValue('corretorCaptacaoId', e.target.value)}
               >
                 <MenuItem value="">-</MenuItem>
                 {corretores.map((u) => (
