@@ -201,7 +201,14 @@ try
         .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(),
             tags: new[] { "live" });
 
-    builder.Services.AddControllers();
+    builder.Services
+        .AddControllers()
+        .AddJsonOptions(options =>
+        {
+            // Enums como string no JSON (ex: "Disponivel" em vez de 0). Sem isso,
+            // o frontend recebe numeros e quebra toda a visualizacao de status.
+            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
     builder.Services.AddEndpointsApiExplorer();
 
     builder.Services.AddSwaggerGen(c =>
