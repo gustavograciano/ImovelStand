@@ -25,6 +25,7 @@ import { clientesService } from '@/services/clientesService';
 import { BriefingClienteCard } from '@/components/BriefingClienteCard';
 import { ObjecoesCard } from '@/components/ObjecoesCard';
 import { WhatsAppCard } from '@/components/WhatsAppCard';
+import { AnaliseCreditoCard } from '@/components/AnaliseCreditoCard';
 import type { TipoInteracao } from '@/types/api';
 
 const TIPOS: TipoInteracao[] = ['Ligacao', 'Whatsapp', 'Email', 'ReuniaoPresencial', 'ReuniaoVideo', 'Visita', 'MensagemInterna'];
@@ -99,6 +100,8 @@ export function ClienteDetailPage() {
       <ObjecoesCard clienteId={c.id} />
 
       <WhatsAppCard clienteId={c.id} />
+
+      <AnaliseCreditoCard clienteId={c.id} />
 
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
