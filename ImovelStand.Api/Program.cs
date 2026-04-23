@@ -13,6 +13,7 @@ using ImovelStand.Infrastructure.Conversao;
 using ImovelStand.Infrastructure.Notificacoes;
 using ImovelStand.Infrastructure.IA;
 using ImovelStand.Infrastructure.Storage;
+using ImovelStand.Infrastructure.WhatsApp;
 using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Mapping;
 using ImovelStand.Application.Services;
@@ -102,6 +103,12 @@ try
     });
     builder.Services.AddScoped<IIAService, ClaudeIAService>();
     builder.Services.AddScoped<CopilotoService>();
+
+    // WhatsApp Business API oficial (Meta Cloud)
+    builder.Services.Configure<WhatsAppOficialOptions>(builder.Configuration.GetSection(WhatsAppOficialOptions.SectionName));
+    builder.Services.AddHttpClient("meta-whatsapp", c => c.Timeout = TimeSpan.FromSeconds(30));
+    builder.Services.AddScoped<IWhatsAppOficialProvider, MetaCloudProvider>();
+    builder.Services.AddScoped<WhatsAppOficialService>();
 
     // Jobs
     builder.Services.AddScoped<ExpirarReservasJob>();
