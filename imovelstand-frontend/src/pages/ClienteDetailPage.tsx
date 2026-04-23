@@ -22,6 +22,7 @@ import {
 import DownloadIcon from '@mui/icons-material/Download';
 import GppGoodIcon from '@mui/icons-material/GppGood';
 import { clientesService } from '@/services/clientesService';
+import { BriefingClienteCard } from '@/components/BriefingClienteCard';
 import type { TipoInteracao } from '@/types/api';
 
 const TIPOS: TipoInteracao[] = ['Ligacao', 'Whatsapp', 'Email', 'ReuniaoPresencial', 'ReuniaoVideo', 'Visita', 'MensagemInterna'];
@@ -90,6 +91,8 @@ export function ClienteDetailPage() {
         <Link component={RouterLink} to="/clientes" underline="hover">Clientes</Link>
         <Typography color="text.primary">{c.nome}</Typography>
       </Breadcrumbs>
+
+      <BriefingClienteCard clienteId={c.id} />
 
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>

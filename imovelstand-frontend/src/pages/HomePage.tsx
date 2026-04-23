@@ -22,6 +22,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { dashboardService } from '@/services/dashboardService';
 import { useAuthStore } from '@/stores/authStore';
+import { FilaCorretorCard } from '@/components/FilaCorretorCard';
 
 function formatBRL(v: number): string {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
@@ -164,6 +165,9 @@ export function HomePage() {
           Um resumo rápido do seu dia — navegue direto pros módulos ou veja os indicadores do empreendimento.
         </Typography>
       </Box>
+
+      {/* Fila IA do corretor */}
+      <FilaCorretorCard />
 
       {/* Stats */}
       <Grid container spacing={2}>

@@ -100,6 +100,7 @@ try
         c.Timeout = TimeSpan.FromSeconds(60);
     });
     builder.Services.AddScoped<IIAService, ClaudeIAService>();
+    builder.Services.AddScoped<CopilotoService>();
 
     // Jobs
     builder.Services.AddScoped<ExpirarReservasJob>();
