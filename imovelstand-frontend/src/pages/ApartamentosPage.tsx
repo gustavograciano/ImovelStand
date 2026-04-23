@@ -25,6 +25,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { apartamentosService, type ApartamentoFilter } from '@/services/apartamentosService';
+import { empreendimentosService } from '@/services/empreendimentosService';
+import { torresService } from '@/services/torresService';
 import { MapaEmpreendimento } from '@/components/MapaEmpreendimento';
 import { NovoApartamentoDialog } from '@/components/NovoApartamentoDialog';
 import { useAuthStore } from '@/stores/authStore';
@@ -55,15 +57,38 @@ export function ApartamentosPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [status, setStatus] = useState<StatusApartamento | ''>('');
+  const [empreendimentoId, setEmpreendimentoId] = useState<number | ''>('');
+  const [torreId, setTorreId] = useState<number | ''>('');
   const [novoOpen, setNovoOpen] = useState(false);
 
+  const empsQuery = useQuery({
+    queryKey: ['empreendimentos', 'filter'],
+    queryFn: () => empreendimentosService.list()
+  });
+
+  const torresQuery = useQuery({
+    queryKey: ['torres', empreendimentoId],
+    queryFn: () => torresService.list(Number(empreendimentoId)),
+    enabled: !!empreendimentoId
+  });
+
   const listFilter = useMemo<ApartamentoFilter>(
-    () => ({ page: page + 1, pageSize, ...(status ? { status } : {}) }),
-    [page, pageSize, status]
+    () => ({
+      page: page + 1,
+      pageSize,
+      ...(status ? { status } : {}),
+      ...(torreId ? { torreId: Number(torreId) } : {})
+    }),
+    [page, pageSize, status, torreId]
   );
   const mapFilter = useMemo<ApartamentoFilter>(
-    () => ({ page: 1, pageSize: 500, ...(status ? { status } : {}) }),
-    [status]
+    () => ({
+      page: 1,
+      pageSize: 500,
+      ...(status ? { status } : {}),
+      ...(torreId ? { torreId: Number(torreId) } : {})
+    }),
+    [status, torreId]
   );
 
   const listQuery = useQuery({
@@ -102,21 +127,57 @@ export function ApartamentosPage() {
       <NovoApartamentoDialog open={novoOpen} onClose={() => setNovoOpen(false)} />
 
       <Paper sx={{ p: 2 }}>
-        <TextField
-          select
-          label="Status"
-          value={status}
-          sx={{ minWidth: 200 }}
-          size="small"
-          onChange={(e) => {
-            setStatus(e.target.value as StatusApartamento | '');
-            setPage(0);
-          }}
-        >
-          {statusOptions.map((o) => (
-            <MenuItem key={o.value || 'all'} value={o.value}>{o.label}</MenuItem>
-          ))}
-        </TextField>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            select
+            label="Empreendimento"
+            value={empreendimentoId}
+            sx={{ minWidth: 220 }}
+            size="small"
+            onChange={(e) => {
+              setEmpreendimentoId(e.target.value ? Number(e.target.value) : '');
+              setTorreId('');
+              setPage(0);
+            }}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            {(empsQuery.data ?? []).map((emp) => (
+              <MenuItem key={emp.id} value={emp.id}>{emp.nome}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Torre"
+            value={torreId}
+            sx={{ minWidth: 200 }}
+            size="small"
+            disabled={!empreendimentoId}
+            onChange={(e) => {
+              setTorreId(e.target.value ? Number(e.target.value) : '');
+              setPage(0);
+            }}
+          >
+            <MenuItem value="">Todas</MenuItem>
+            {(torresQuery.data ?? []).map((t) => (
+              <MenuItem key={t.id} value={t.id}>{t.nome}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Status"
+            value={status}
+            sx={{ minWidth: 200 }}
+            size="small"
+            onChange={(e) => {
+              setStatus(e.target.value as StatusApartamento | '');
+              setPage(0);
+            }}
+          >
+            {statusOptions.map((o) => (
+              <MenuItem key={o.value || 'all'} value={o.value}>{o.label}</MenuItem>
+            ))}
+          </TextField>
+        </Stack>
       </Paper>
 
       {activeQuery.isError ? <Alert severity="error">Erro ao carregar apartamentos.</Alert> : null}
