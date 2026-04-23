@@ -15,6 +15,7 @@ using ImovelStand.Infrastructure.IA;
 using ImovelStand.Infrastructure.Storage;
 using ImovelStand.Infrastructure.WhatsApp;
 using ImovelStand.Infrastructure.Precificacao;
+using ImovelStand.Infrastructure.OpenFinance;
 using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Mapping;
 using ImovelStand.Application.Services;
@@ -113,6 +114,11 @@ try
 
     // Precificação dinâmica
     builder.Services.AddScoped<PrecificacaoService>();
+
+    // Open Finance / Análise de crédito
+    builder.Services.Configure<OpenFinanceOptions>(builder.Configuration.GetSection(OpenFinanceOptions.SectionName));
+    builder.Services.AddScoped<IOpenFinanceProvider, StubOpenFinanceProvider>();
+    builder.Services.AddScoped<AnaliseCreditoService>();
 
     // Jobs
     builder.Services.AddScoped<ExpirarReservasJob>();
