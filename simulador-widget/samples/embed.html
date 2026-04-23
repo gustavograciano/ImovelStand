@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exemplo: Residencial Vista Verde</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background: #f5f5f5;
+    }
+    header { max-width: 720px; margin: 0 auto 32px; text-align: center; }
+    h1 { font-size: 28px; margin: 0 0 8px 0; }
+    p { color: #555; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Residencial Vista Verde</h1>
+    <p>Apartamentos de 2 e 3 dormitórios · entrega jan/2027</p>
+  </header>
+
+  <!-- Container onde o widget vai montar -->
+  <div id="imovelstand-simulador"></div>
+
+  <!-- Script do widget (IIFE) -->
+  <script
+    src="../dist/widget.js"
+    data-tenant="construtora-xyz"
+    data-api="http://localhost:5000"
+    data-color="#8b5cf6"
+    data-preco="550000"
+  ></script>
+</body>
+</html>
