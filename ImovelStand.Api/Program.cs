@@ -11,6 +11,7 @@ using ImovelStand.Infrastructure.Persistence;
 using ImovelStand.Infrastructure.Interceptors;
 using ImovelStand.Infrastructure.Conversao;
 using ImovelStand.Infrastructure.Notificacoes;
+using ImovelStand.Infrastructure.IA;
 using ImovelStand.Infrastructure.Storage;
 using ImovelStand.Application.Abstractions;
 using ImovelStand.Application.Mapping;
@@ -90,6 +91,15 @@ try
     builder.Services.Configure<NotificacaoOptions>(builder.Configuration.GetSection("Notificacao"));
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<INotificador, MailKitNotificador>();
+
+    // Módulo IA (Claude / Anthropic) — copiloto para corretor
+    builder.Services.Configure<IAOptions>(builder.Configuration.GetSection(IAOptions.SectionName));
+    builder.Services.AddMemoryCache();
+    builder.Services.AddHttpClient("anthropic", c =>
+    {
+        c.Timeout = TimeSpan.FromSeconds(60);
+    });
+    builder.Services.AddScoped<IIAService, ClaudeIAService>();
 
     // Jobs
     builder.Services.AddScoped<ExpirarReservasJob>();
