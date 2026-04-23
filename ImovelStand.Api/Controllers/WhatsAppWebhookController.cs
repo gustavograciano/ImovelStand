@@ -144,12 +144,21 @@ public class WhatsAppWebhookController : ControllerBase
 
     private async Task<Tenant?> ResolverTenantAsync(string phoneNumberId, CancellationToken ct)
     {
-        // Tenta primeiro por PhoneNumberId no Tenant (multi-tenant)
+        // Prioridade 1: NumeroWhatsApp (multi-numero, Sprint 29.3)
+        var numero = await _context.NumerosWhatsApp.IgnoreQueryFilters().AsNoTracking()
+            .FirstOrDefaultAsync(n => n.PhoneNumberId == phoneNumberId && n.Ativo, ct);
+        if (numero is not null)
+        {
+            return await _context.Tenants.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.Id == numero.TenantId, ct);
+        }
+
+        // Prioridade 2: Tenant.WhatsAppPhoneNumberId (legado, 1 número por tenant)
         var porTenant = await _context.Tenants.IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.WhatsAppPhoneNumberId == phoneNumberId, ct);
         if (porTenant is not null) return porTenant;
 
-        // Fallback dev: se WhatsAppOficial.PhoneNumberId bate, usa o demo tenant
+        // Prioridade 3: fallback dev (config em appsettings)
         if (_options.PhoneNumberId == phoneNumberId)
         {
             return await _context.Tenants.IgnoreQueryFilters()
@@ -159,6 +168,35 @@ public class WhatsAppWebhookController : ControllerBase
         return null;
     }
 
+    /// <summary>
+    /// Quando mensagem chega e o cliente não tem corretor responsável,
+    /// distribui automaticamente:
+    /// 1. Se o número recebedor tem UsuarioId definido, usa ele
+    /// 2. Senão, round-robin entre números compartilhados ativos do tenant
+    /// </summary>
+    private async Task<int?> DistribuirCorretorAsync(Guid tenantId, string phoneNumberId, CancellationToken ct)
+    {
+        var numero = await _context.NumerosWhatsApp.IgnoreQueryFilters().AsNoTracking()
+            .FirstOrDefaultAsync(n => n.PhoneNumberId == phoneNumberId && n.TenantId == tenantId, ct);
+        if (numero?.UsuarioId is not null) return numero.UsuarioId;
+
+        // Round-robin: pega o corretor com menos clientes recentes
+        var umaSemanaAtras = DateTime.UtcNow.AddDays(-7);
+        var candidato = await _context.Usuarios.IgnoreQueryFilters()
+            .Where(u => u.TenantId == tenantId && u.Ativo && u.Role == "Corretor")
+            .Select(u => new
+            {
+                u.Id,
+                ClientesRecentes = _context.Clientes.IgnoreQueryFilters()
+                    .Count(c => c.CorretorResponsavelId == u.Id && c.DataCadastro >= umaSemanaAtras)
+            })
+            .OrderBy(x => x.ClientesRecentes)
+            .ThenBy(x => x.Id)
+            .FirstOrDefaultAsync(ct);
+
+        return candidato?.Id;
+    }
+
     private async Task ProcessarMensagemAsync(MetaInboundMessage msg, MetaWebhookValue value, Tenant tenant, CancellationToken ct)
     {
         // Idempotência: ignora se já processamos esta msg
@@ -166,18 +204,46 @@ public class WhatsAppWebhookController : ControllerBase
             .AnyAsync(m => m.ProviderMessageId == msg.Id, ct);
         if (jaExiste) return;
 
+        var from = msg.From ?? string.Empty;
+        var phoneNumberId = value.Metadata?.PhoneNumberId ?? string.Empty;
+
         var cliente = await _context.Clientes.IgnoreQueryFilters()
             .FirstOrDefaultAsync(c => c.TenantId == tenant.Id
-                && (c.Telefone.Contains(msg.From ?? "") || (c.Whatsapp ?? "").Contains(msg.From ?? "")), ct);
+                && (c.Telefone.Contains(from) || (c.Whatsapp ?? "").Contains(from)), ct);
 
         var conteudo = ExtrairConteudo(msg);
+
+        // Auto-criação de lead para numero desconhecido (reduz fricção)
+        if (cliente is null && !string.IsNullOrEmpty(from))
+        {
+            var corretorId = await DistribuirCorretorAsync(tenant.Id, phoneNumberId, ct);
+            var cpfPlaceholder = $"WPP-{Guid.NewGuid():N}"[..14];
+            cliente = new Domain.Entities.Cliente
+            {
+                TenantId = tenant.Id,
+                Nome = $"Lead WhatsApp {from}",
+                Cpf = cpfPlaceholder,
+                Email = $"{cpfPlaceholder}@lead-whatsapp.local",
+                Telefone = from,
+                Whatsapp = from,
+                OrigemLead = OrigemLead.WhatsApp,
+                StatusFunil = StatusFunil.Lead,
+                CorretorResponsavelId = corretorId,
+                ConsentimentoLgpd = false,
+                DataCadastro = DateTime.UtcNow
+            };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync(ct); // precisa ID pra interacao
+            _logger.LogInformation("WhatsApp auto-criou lead {Id} para {From} → corretor {CId}",
+                cliente.Id, from, corretorId);
+        }
 
         var mensagem = new WhatsAppMensagem
         {
             TenantId = tenant.Id,
             ClienteId = cliente?.Id,
-            TelefoneContato = msg.From ?? string.Empty,
-            NumeroEmpresa = value.Metadata?.PhoneNumberId ?? string.Empty,
+            TelefoneContato = from,
+            NumeroEmpresa = phoneNumberId,
             Direcao = DirecaoWhatsApp.Recebida,
             Status = StatusMensagemWhatsApp.Entregue,
             Conteudo = conteudo,
@@ -200,7 +266,7 @@ public class WhatsAppWebhookController : ControllerBase
         }
 
         _logger.LogInformation("WhatsApp inbound: {From} → tenant {Tenant} ({Cliente})",
-            msg.From, tenant.Slug, cliente?.Nome ?? "não identificado");
+            from, tenant.Slug, cliente?.Nome ?? "não identificado");
     }
 
     private async Task ProcessarStatusAsync(MetaStatusUpdate st, Tenant tenant, CancellationToken ct)
