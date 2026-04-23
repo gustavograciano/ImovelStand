@@ -77,18 +77,20 @@ export function ApartamentosPage() {
       page: page + 1,
       pageSize,
       ...(status ? { status } : {}),
+      ...(empreendimentoId ? { empreendimentoId: Number(empreendimentoId) } : {}),
       ...(torreId ? { torreId: Number(torreId) } : {})
     }),
-    [page, pageSize, status, torreId]
+    [page, pageSize, status, empreendimentoId, torreId]
   );
   const mapFilter = useMemo<ApartamentoFilter>(
     () => ({
       page: 1,
       pageSize: 500,
       ...(status ? { status } : {}),
+      ...(empreendimentoId ? { empreendimentoId: Number(empreendimentoId) } : {}),
       ...(torreId ? { torreId: Number(torreId) } : {})
     }),
-    [status, torreId]
+    [status, empreendimentoId, torreId]
   );
 
   const listQuery = useQuery({
