@@ -18,7 +18,9 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { propostasService } from '@/services/propostasService';
+import { NovaPropostaDialog } from '@/components/NovaPropostaDialog';
 import type { PropostaResponse, StatusProposta } from '@/types/api';
 
 const STATUS_COLORS: Record<StatusProposta, 'default' | 'primary' | 'warning' | 'success' | 'error' | 'info'> = {
@@ -40,6 +42,7 @@ function formatBRL(v: number): string {
 
 export function PropostasPage() {
   const [status, setStatus] = useState<StatusProposta | ''>('');
+  const [novaOpen, setNovaOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -105,19 +108,26 @@ export function PropostasPage() {
   return (
     <Stack spacing={3}>
       <Paper sx={{ p: 2 }}>
-        <TextField
-          select
-          size="small"
-          label="Status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as StatusProposta | '')}
-          sx={{ minWidth: 200 }}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <MenuItem key={s || 'all'} value={s}>{s || 'Todos'}</MenuItem>
-          ))}
-        </TextField>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+          <TextField
+            select
+            size="small"
+            label="Status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as StatusProposta | '')}
+            sx={{ minWidth: 200 }}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <MenuItem key={s || 'all'} value={s}>{s || 'Todos'}</MenuItem>
+            ))}
+          </TextField>
+          <Button startIcon={<AddIcon />} onClick={() => setNovaOpen(true)}>
+            Nova proposta
+          </Button>
+        </Stack>
       </Paper>
+
+      <NovaPropostaDialog open={novaOpen} onClose={() => setNovaOpen(false)} />
 
       {isError ? <Alert severity="error">Erro ao carregar propostas.</Alert> : null}
 

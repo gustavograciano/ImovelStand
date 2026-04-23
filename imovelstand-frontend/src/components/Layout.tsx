@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ApartmentIcon from '@mui/icons-material/Apartment';
+import BusinessIcon from '@mui/icons-material/Business';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import DescriptionIcon from '@mui/icons-material/Description';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -41,6 +42,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'Início', icon: <SpaceDashboardIcon fontSize="small" />, end: true },
   { to: '/dashboard', label: 'Dashboard', icon: <DashboardIcon fontSize="small" /> },
+  { to: '/empreendimentos', label: 'Empreendimentos', icon: <BusinessIcon fontSize="small" /> },
   { to: '/apartamentos', label: 'Apartamentos', icon: <ApartmentIcon fontSize="small" /> },
   { to: '/clientes', label: 'Clientes', icon: <PeopleAltIcon fontSize="small" /> },
   { to: '/propostas', label: 'Propostas', icon: <DescriptionIcon fontSize="small" /> },
