@@ -43,6 +43,7 @@ public class ApartamentoResponse
 public class ApartamentoFiltro
 {
     public StatusApartamento? Status { get; set; }
+    public int? EmpreendimentoId { get; set; }
     public int? TorreId { get; set; }
     public int? TipologiaId { get; set; }
     public int? PavimentoMin { get; set; }

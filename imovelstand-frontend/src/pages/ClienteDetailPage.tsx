@@ -108,11 +108,21 @@ export function ClienteDetailPage() {
                 <InfoRow label="RG" value={c.rg ?? '—'} />
                 <InfoRow label="Data nasc." value={c.dataNascimento ? new Date(c.dataNascimento).toLocaleDateString('pt-BR') : '—'} />
                 <InfoRow label="Estado civil" value={c.estadoCivil ?? '—'} />
+                <InfoRow label="Regime de bens" value={c.regimeBens ?? '—'} />
                 <InfoRow label="Profissão" value={c.profissao ?? '—'} />
                 <InfoRow label="Empresa" value={c.empresa ?? '—'} />
                 <InfoRow label="Renda mensal" value={c.rendaMensal ? c.rendaMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'} />
                 <InfoRow label="WhatsApp" value={c.whatsapp ?? '—'} />
                 <InfoRow label="Origem" value={c.origemLead ?? '—'} />
+                <InfoRow label="Corretor responsável" value={c.corretorResponsavelId ? `#${c.corretorResponsavelId}` : '—'} />
+                <InfoRow
+                  label="Endereço"
+                  value={
+                    c.endereco
+                      ? `${c.endereco.logradouro}, ${c.endereco.numero}${c.endereco.complemento ? ' ' + c.endereco.complemento : ''} — ${c.endereco.bairro}, ${c.endereco.cidade}/${c.endereco.uf} — CEP ${c.endereco.cep}`
+                      : '—'
+                  }
+                />
                 <InfoRow
                   label="Consentimento LGPD"
                   value={c.consentimentoLgpd ? `Sim (${c.consentimentoLgpdEm ? new Date(c.consentimentoLgpdEm).toLocaleDateString('pt-BR') : '-'})` : 'Não'}

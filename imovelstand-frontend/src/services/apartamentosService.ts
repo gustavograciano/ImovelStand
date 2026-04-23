@@ -3,6 +3,7 @@ import type { ApartamentoResponse, PagedResult, StatusApartamento } from '@/type
 
 export interface ApartamentoFilter {
   status?: StatusApartamento;
+  empreendimentoId?: number;
   torreId?: number;
   tipologiaId?: number;
   pavimentoMin?: number;

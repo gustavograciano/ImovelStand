@@ -39,6 +39,7 @@ public class ApartamentosController : ControllerBase
             .AsQueryable();
 
         if (filtro.Status.HasValue) query = query.Where(a => a.Status == filtro.Status);
+        if (filtro.EmpreendimentoId.HasValue) query = query.Where(a => a.Torre.EmpreendimentoId == filtro.EmpreendimentoId);
         if (filtro.TorreId.HasValue) query = query.Where(a => a.TorreId == filtro.TorreId);
         if (filtro.TipologiaId.HasValue) query = query.Where(a => a.TipologiaId == filtro.TipologiaId);
         if (filtro.PavimentoMin.HasValue) query = query.Where(a => a.Pavimento >= filtro.PavimentoMin);
