@@ -47,6 +47,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<NumeroWhatsApp> NumerosWhatsApp => Set<NumeroWhatsApp>();
     public DbSet<PrecoMercado> PrecosMercado => Set<PrecoMercado>();
     public DbSet<SugestaoPreco> SugestoesPreco => Set<SugestaoPreco>();
+    public DbSet<SolicitacaoAnaliseCredito> SolicitacoesAnaliseCredito => Set<SolicitacaoAnaliseCredito>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -457,6 +458,23 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.AceitaPorUsuario)
                 .WithMany()
                 .HasForeignKey(e => e.AceitaPorUsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SolicitacaoAnaliseCredito>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.ClienteId });
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.ExpiraEm);
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Cliente)
+                .WithMany()
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.SolicitadoPorUsuario)
+                .WithMany()
+                .HasForeignKey(e => e.SolicitadoPorUsuarioId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
