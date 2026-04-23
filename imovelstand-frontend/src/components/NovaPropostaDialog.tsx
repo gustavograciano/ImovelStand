@@ -1,8 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  Box,
   Button,
+  Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,6 +16,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,6 +24,7 @@ import { propostasService } from '@/services/propostasService';
 import { clientesService } from '@/services/clientesService';
 import { apartamentosService } from '@/services/apartamentosService';
 import { usuariosService } from '@/services/usuariosService';
+import { copilotoService } from '@/services/copilotoService';
 import type { IndiceReajuste } from '@/types/api';
 
 const INDICES: IndiceReajuste[] = ['SemReajuste', 'Incc', 'Ipca', 'Igpm', 'Tr', 'Selic'];
@@ -56,6 +61,9 @@ interface Props {
 
 export function NovaPropostaDialog({ open, onClose, apartamentoIdInicial, clienteIdInicial }: Props) {
   const queryClient = useQueryClient();
+  const [extrairOpen, setExtrairOpen] = useState(false);
+  const [conversa, setConversa] = useState('');
+  const [camposFaltantes, setCamposFaltantes] = useState<string[]>([]);
 
   const clientesQuery = useQuery({
     queryKey: ['clientes', 'select'],
@@ -167,6 +175,32 @@ export function NovaPropostaDialog({ open, onClose, apartamentoIdInicial, client
     }
   });
 
+  const extrairMutation = useMutation({
+    mutationFn: ({ apartamentoId, conversa }: { apartamentoId: number; conversa: string }) =>
+      copilotoService.extrairProposta(apartamentoId, conversa),
+    onSuccess: (resp) => {
+      if (!resp.sucesso || !resp.proposta) return;
+      const p = resp.proposta;
+      setValue('valorOferecido', p.valorOferecido || 0);
+      if (p.observacoes) setValue('observacoes', p.observacoes);
+      setValue('valorTotal', p.condicao.valorTotal || 0);
+      setValue('entrada', p.condicao.entrada || 0);
+      setValue('sinal', p.condicao.sinal || 0);
+      setValue('qtdParcelasMensais', p.condicao.qtdParcelasMensais || 0);
+      setValue('valorParcelaMensal', p.condicao.valorParcelaMensal || 0);
+      setValue('qtdSemestrais', p.condicao.qtdSemestrais || 0);
+      setValue('valorSemestral', p.condicao.valorSemestral || 0);
+      setValue('valorChaves', p.condicao.valorChaves || 0);
+      setValue('qtdPosChaves', p.condicao.qtdPosChaves || 0);
+      setValue('valorPosChaves', p.condicao.valorPosChaves || 0);
+      setValue('indice', p.condicao.indice || 'SemReajuste');
+      setValue('taxaJurosAnual', p.condicao.taxaJurosAnual || 0);
+      setCamposFaltantes(p.camposFaltantes ?? []);
+      setExtrairOpen(false);
+      setConversa('');
+    }
+  });
+
   const corretores = useMemo(
     () => (usuariosQuery.data ?? []).filter((u) => u.role === 'Corretor' || u.role === 'Gerente' || u.role === 'Admin'),
     [usuariosQuery.data]
@@ -246,6 +280,26 @@ export function NovaPropostaDialog({ open, onClose, apartamentoIdInicial, client
 
             <Divider textAlign="left"><Typography variant="caption">Condição de pagamento</Typography></Divider>
 
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" flexWrap="wrap">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoAwesomeIcon />}
+                onClick={() => setExtrairOpen(true)}
+                disabled={!apartamentoSelecionado}
+              >
+                Colar conversa (extrair com IA)
+              </Button>
+              {camposFaltantes.length > 0 ? (
+                <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                  <Typography variant="caption" color="warning.main">Campos incertos:</Typography>
+                  {camposFaltantes.map((c) => (
+                    <Chip key={c} size="small" label={c} color="warning" variant="outlined" />
+                  ))}
+                </Stack>
+              ) : null}
+            </Stack>
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField label="Valor total" type="number" fullWidth inputProps={{ step: '0.01' }} {...register('valorTotal')} error={!!errors.valorTotal} helperText={errors.valorTotal?.message} />
               <TextField label="Entrada" type="number" fullWidth inputProps={{ step: '0.01' }} {...register('entrada')} />
@@ -309,6 +363,53 @@ export function NovaPropostaDialog({ open, onClose, apartamentoIdInicial, client
           </Button>
         </DialogActions>
       </form>
+
+      <Dialog open={extrairOpen} onClose={() => setExtrairOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <AutoAwesomeIcon color="primary" fontSize="small" />
+            <span>Extrair proposta de conversa</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Cole aqui a conversa com o cliente (WhatsApp, email, anotações). A IA vai extrair valores, parcelas, entrada e demais campos automaticamente. Você revisa antes de salvar.
+            </Typography>
+            {!apartamentoSelecionado ? (
+              <Alert severity="warning">Selecione um apartamento antes de usar o extrator — o valor tabela ancora a análise.</Alert>
+            ) : null}
+            <TextField
+              multiline
+              minRows={10}
+              maxRows={20}
+              fullWidth
+              placeholder="Cliente: Aceito pagar 800 mil com entrada de 80 mil e 120 parcelas de 6 mil..."
+              value={conversa}
+              onChange={(e) => setConversa(e.target.value)}
+              disabled={extrairMutation.isPending}
+            />
+            {extrairMutation.isPending ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+                <CircularProgress size={18} />
+                <Typography variant="caption" color="text.secondary">Analisando conversa…</Typography>
+              </Box>
+            ) : null}
+            {extrairMutation.data && !extrairMutation.data.sucesso ? (
+              <Alert severity="error">{extrairMutation.data.mensagemErro ?? 'Erro ao extrair.'}</Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="text" onClick={() => setExtrairOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={() => apartamentoSelecionado && extrairMutation.mutate({ apartamentoId: apartamentoSelecionado.id, conversa })}
+            disabled={!apartamentoSelecionado || !conversa.trim() || extrairMutation.isPending}
+          >
+            Extrair
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }
