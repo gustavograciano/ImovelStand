@@ -26,6 +26,7 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 import GroupIcon from '@mui/icons-material/Group';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
@@ -49,6 +50,7 @@ const NAV: NavItem[] = [
   { to: '/clientes', label: 'Clientes', icon: <PeopleAltIcon fontSize="small" /> },
   { to: '/propostas', label: 'Propostas', icon: <DescriptionIcon fontSize="small" /> },
   { to: '/vendas', label: 'Vendas', icon: <PointOfSaleIcon fontSize="small" /> },
+  { to: '/simulador', label: 'Simulador', icon: <CalculateIcon fontSize="small" /> },
   { to: '/usuarios', label: 'Usuários', icon: <GroupIcon fontSize="small" />, adminOnly: true }
 ];
 
