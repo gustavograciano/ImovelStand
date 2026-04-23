@@ -30,6 +30,14 @@ public class Tenant
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Phone Number ID do Meta (Cloud API) associado a este tenant. Usado
+    /// para rotear webhooks inbound. Nullable até ser cadastrado na Sprint 29.3
+    /// (multi-número). Para MVP, 1 tenant = 1 número.
+    /// </summary>
+    [MaxLength(50)]
+    public string? WhatsAppPhoneNumberId { get; set; }
+
     [ForeignKey(nameof(PlanoId))]
     public virtual Plano Plano { get; set; } = null!;
 }
