@@ -111,7 +111,8 @@ export interface ClienteResponse {
   cpf: string;
   rg?: string | null;
   dataNascimento?: string | null;
-  estadoCivil?: string | null;
+  estadoCivil?: EstadoCivil | null;
+  regimeBens?: RegimeBens | null;
   profissao?: string | null;
   empresa?: string | null;
   rendaMensal?: number | null;

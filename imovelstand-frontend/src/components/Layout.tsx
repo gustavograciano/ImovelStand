@@ -25,6 +25,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
+import GroupIcon from '@mui/icons-material/Group';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
@@ -37,6 +38,7 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   end?: boolean;
+  adminOnly?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -46,7 +48,8 @@ const NAV: NavItem[] = [
   { to: '/apartamentos', label: 'Apartamentos', icon: <ApartmentIcon fontSize="small" /> },
   { to: '/clientes', label: 'Clientes', icon: <PeopleAltIcon fontSize="small" /> },
   { to: '/propostas', label: 'Propostas', icon: <DescriptionIcon fontSize="small" /> },
-  { to: '/vendas', label: 'Vendas', icon: <PointOfSaleIcon fontSize="small" /> }
+  { to: '/vendas', label: 'Vendas', icon: <PointOfSaleIcon fontSize="small" /> },
+  { to: '/usuarios', label: 'Usuários', icon: <GroupIcon fontSize="small" />, adminOnly: true }
 ];
 
 export function Layout() {
@@ -118,7 +121,7 @@ export function Layout() {
           <Divider />
 
           <List sx={{ px: 1.5, py: 1.5, flex: 1 }}>
-            {NAV.map((item) => {
+            {NAV.filter((item) => !item.adminOnly || user?.role === 'Admin').map((item) => {
               const active = item.end
                 ? location.pathname === item.to
                 : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
