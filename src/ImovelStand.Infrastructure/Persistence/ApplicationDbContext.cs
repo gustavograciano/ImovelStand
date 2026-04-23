@@ -41,6 +41,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
     public DbSet<Assinatura> Assinaturas => Set<Assinatura>();
     public DbSet<TemplateNotificacao> TemplatesNotificacao => Set<TemplateNotificacao>();
+    public DbSet<IAInteracao> IAInteracoes => Set<IAInteracao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -385,6 +386,18 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.PlanoId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<IAInteracao>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.CreatedAt });
+            entity.HasIndex(e => new { e.TenantId, e.Operacao, e.CreatedAt });
+            entity.HasIndex(e => e.InputHash);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         ApplyTenantFilters(modelBuilder);
