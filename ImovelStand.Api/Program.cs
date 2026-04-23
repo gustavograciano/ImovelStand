@@ -78,6 +78,7 @@ try
     builder.Services.AddSingleton<IFileStorage, MinioFileStorage>();
     builder.Services.AddSingleton<ImageProcessor>();
     builder.Services.AddSingleton<CalculadoraFinanceira>();
+    builder.Services.AddSingleton<SimuladorFinanceiroService>();
     builder.Services.AddSingleton<EspelhoPdfGenerator>();
     builder.Services.AddSingleton<ContratoTemplateEngine>();
     builder.Services.AddSingleton<DashboardService>();
