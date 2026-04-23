@@ -1,0 +1,13 @@
+{
+  "name": "imovelstand-pdf-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gera o PDF de apresentacao comercial do ImovelStand com screenshots reais capturados via Puppeteer.",
+  "scripts": {
+    "gerar": "node gerar-pdf.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^24.42.0"
+  }
+}
