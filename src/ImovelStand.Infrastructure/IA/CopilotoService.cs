@@ -208,6 +208,188 @@ public class CopilotoService
         };
     }
 
+    // ========== Extrator de proposta (conversa → JSON estruturado) ==========
+
+    public async Task<ExtrairPropostaResponse> ExtrairPropostaAsync(
+        int apartamentoId,
+        string conversa,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(conversa))
+        {
+            return new ExtrairPropostaResponse
+            {
+                Sucesso = false,
+                MensagemErro = "Cole o texto da conversa para extrair."
+            };
+        }
+
+        var apartamento = await _context.Apartamentos.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == apartamentoId, ct);
+
+        if (apartamento is null)
+        {
+            return new ExtrairPropostaResponse
+            {
+                Sucesso = false,
+                MensagemErro = "Apartamento não encontrado."
+            };
+        }
+
+        var request = new IARequest
+        {
+            Operacao = "extrair-proposta",
+            PromptVersao = "v1",
+            SystemPrompt = PromptLibrary.ExtrairPropostaSystem("v1"),
+            UserPrompt = PromptLibrary.ExtrairPropostaUser(conversa, apartamento.PrecoAtual, "v1"),
+            MaxTokens = 1500,
+            Temperature = 0.1, // preciso, não criativo
+            UsarCache = true,
+            ExigirJson = true
+        };
+
+        var resp = await _ia.InvocarAsync(request, ct);
+
+        if (!resp.Sucesso)
+        {
+            return new ExtrairPropostaResponse
+            {
+                Sucesso = false,
+                MensagemErro = resp.MensagemErro
+            };
+        }
+
+        try
+        {
+            var json = ExtrairJsonPuro(resp.Conteudo);
+            var parsed = JsonSerializer.Deserialize<PropostaExtraida>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (parsed is null)
+            {
+                return new ExtrairPropostaResponse
+                {
+                    Sucesso = false,
+                    MensagemErro = "Resposta vazia da IA."
+                };
+            }
+
+            return new ExtrairPropostaResponse
+            {
+                Sucesso = true,
+                Proposta = parsed,
+                CustoUsd = resp.CustoUsd,
+                InteracaoId = resp.InteracaoId
+            };
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Extrator: JSON inválido. Conteúdo: {C}",
+                resp.Conteudo.Length > 300 ? resp.Conteudo[..300] : resp.Conteudo);
+            return new ExtrairPropostaResponse
+            {
+                Sucesso = false,
+                MensagemErro = "Não foi possível interpretar a resposta da IA."
+            };
+        }
+    }
+
+    // ========== Análise de objeções ==========
+
+    public async Task<AnaliseObjecoesResponse> AnalisarObjecoesAsync(
+        int clienteId,
+        CancellationToken ct = default)
+    {
+        var cliente = await _context.Clientes.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == clienteId, ct);
+
+        if (cliente is null)
+        {
+            return new AnaliseObjecoesResponse
+            {
+                Sucesso = false,
+                MensagemErro = "Cliente não encontrado."
+            };
+        }
+
+        var interacoes = await _context.HistoricoInteracoes.AsNoTracking()
+            .Where(i => i.ClienteId == clienteId)
+            .OrderByDescending(i => i.DataHora)
+            .Take(30)
+            .ToListAsync(ct);
+
+        if (interacoes.Count < 2)
+        {
+            return new AnaliseObjecoesResponse
+            {
+                Sucesso = true,
+                Objecoes = new List<Objecao>(),
+                MensagemErro = null
+            };
+        }
+
+        var sb = new StringBuilder();
+        foreach (var i in interacoes.OrderBy(x => x.DataHora))
+        {
+            var c = i.Conteudo.Length > 300 ? i.Conteudo[..300] + "..." : i.Conteudo;
+            sb.AppendLine($"[{i.DataHora:yyyy-MM-dd}] {i.Tipo}: {c}");
+        }
+
+        var request = new IARequest
+        {
+            Operacao = "analisar-objecoes",
+            PromptVersao = "v1",
+            SystemPrompt = PromptLibrary.AnalisarObjecoesSystem("v1"),
+            UserPrompt = PromptLibrary.AnalisarObjecoesUser(sb.ToString(), "v1"),
+            MaxTokens = 1200,
+            Temperature = 0.3,
+            UsarCache = true,
+            ExigirJson = true
+        };
+
+        var resp = await _ia.InvocarAsync(request, ct);
+
+        if (!resp.Sucesso)
+        {
+            return new AnaliseObjecoesResponse
+            {
+                Sucesso = false,
+                MensagemErro = resp.MensagemErro,
+                Objecoes = new List<Objecao>()
+            };
+        }
+
+        try
+        {
+            var json = ExtrairJsonPuro(resp.Conteudo);
+            var parsed = JsonSerializer.Deserialize<ObjecoesPayload>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return new AnaliseObjecoesResponse
+            {
+                Sucesso = true,
+                Objecoes = parsed?.Objecoes ?? new List<Objecao>(),
+                CustoUsd = resp.CustoUsd,
+                DoCache = resp.DoCache,
+                InteracaoId = resp.InteracaoId
+            };
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Objeções: JSON inválido.");
+            return new AnaliseObjecoesResponse
+            {
+                Sucesso = false,
+                MensagemErro = "Falha ao interpretar a resposta.",
+                Objecoes = new List<Objecao>()
+            };
+        }
+    }
+
     // ========== Helpers ==========
 
     private static string MontarContextoCliente(Cliente c, List<Proposta> propostas)
@@ -304,4 +486,60 @@ public class AcaoSugerida
     public string Prioridade { get; set; } = "media"; // urgente | alta | media
     public string Acao { get; set; } = string.Empty;
     public string Justificativa { get; set; } = string.Empty;
+}
+
+public class ExtrairPropostaResponse
+{
+    public bool Sucesso { get; set; }
+    public string? MensagemErro { get; set; }
+    public PropostaExtraida? Proposta { get; set; }
+    public decimal CustoUsd { get; set; }
+    public long InteracaoId { get; set; }
+}
+
+public class PropostaExtraida
+{
+    public decimal ValorOferecido { get; set; }
+    public string? Observacoes { get; set; }
+    public CondicaoExtraida Condicao { get; set; } = new();
+    public List<string> CamposFaltantes { get; set; } = new();
+}
+
+public class CondicaoExtraida
+{
+    public decimal ValorTotal { get; set; }
+    public decimal Entrada { get; set; }
+    public decimal Sinal { get; set; }
+    public int QtdParcelasMensais { get; set; }
+    public decimal ValorParcelaMensal { get; set; }
+    public int QtdSemestrais { get; set; }
+    public decimal ValorSemestral { get; set; }
+    public decimal ValorChaves { get; set; }
+    public int QtdPosChaves { get; set; }
+    public decimal ValorPosChaves { get; set; }
+    public string Indice { get; set; } = "SemReajuste";
+    public decimal TaxaJurosAnual { get; set; }
+}
+
+public class AnaliseObjecoesResponse
+{
+    public bool Sucesso { get; set; }
+    public string? MensagemErro { get; set; }
+    public List<Objecao> Objecoes { get; set; } = new();
+    public decimal CustoUsd { get; set; }
+    public bool DoCache { get; set; }
+    public long InteracaoId { get; set; }
+}
+
+public class ObjecoesPayload
+{
+    public List<Objecao> Objecoes { get; set; } = new();
+}
+
+public class Objecao
+{
+    public string Tema { get; set; } = string.Empty;
+    public int Ocorrencias { get; set; }
+    public string UltimaMencao { get; set; } = string.Empty;
+    public string SugestaoContorno { get; set; } = string.Empty;
 }

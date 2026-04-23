@@ -63,4 +63,39 @@ public class CopilotoController : ControllerBase
         var resp = await _copiloto.GerarProximasAcoesAsync(targetId, ct);
         return Ok(resp);
     }
+
+    /// <summary>
+    /// Recebe texto bruto de conversa (WhatsApp/email) e retorna proposta
+    /// estruturada com valores, condição de pagamento e campos faltantes.
+    /// O corretor revisa antes de salvar.
+    /// </summary>
+    [HttpPost("extrair-proposta")]
+    public async Task<ActionResult<ExtrairPropostaResponse>> ExtrairProposta(
+        [FromBody] ExtrairPropostaRequest request,
+        CancellationToken ct)
+    {
+        var resp = await _copiloto.ExtrairPropostaAsync(request.ApartamentoId, request.Conversa, ct);
+        return Ok(resp);
+    }
+
+    /// <summary>
+    /// Analisa histórico de interações e detecta objeções recorrentes com
+    /// sugestões de contorno.
+    /// </summary>
+    [HttpGet("objecoes/{clienteId:int}")]
+    public async Task<ActionResult<AnaliseObjecoesResponse>> AnalisarObjecoes(
+        int clienteId,
+        CancellationToken ct)
+    {
+        var resp = await _copiloto.AnalisarObjecoesAsync(clienteId, ct);
+        if (!resp.Sucesso && resp.MensagemErro?.Contains("não encontrado") == true)
+            return NotFound(resp);
+        return Ok(resp);
+    }
+}
+
+public class ExtrairPropostaRequest
+{
+    public int ApartamentoId { get; set; }
+    public string Conversa { get; set; } = string.Empty;
 }
