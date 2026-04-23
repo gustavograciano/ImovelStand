@@ -44,6 +44,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<IAInteracao> IAInteracoes => Set<IAInteracao>();
     public DbSet<WhatsAppTemplate> WhatsAppTemplates => Set<WhatsAppTemplate>();
     public DbSet<WhatsAppMensagem> WhatsAppMensagens => Set<WhatsAppMensagem>();
+    public DbSet<NumeroWhatsApp> NumerosWhatsApp => Set<NumeroWhatsApp>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -422,6 +423,17 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Template)
                 .WithMany()
                 .HasForeignKey(e => e.TemplateId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<NumeroWhatsApp>(entity =>
+        {
+            entity.HasIndex(e => e.PhoneNumberId).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.UsuarioId });
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
